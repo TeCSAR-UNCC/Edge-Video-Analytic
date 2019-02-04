@@ -31,7 +31,7 @@ int recvLock = 1;
 void *sendData(void*) {
   /* Initializing network parameters */
   int sock;
-  char* IPADDR = "127.0.0.1";
+  char* IPADDR = "10.216.43.37";
 	struct sockaddr_in servaddr;
 
 	sock = socket(AF_INET,SOCK_STREAM,0);

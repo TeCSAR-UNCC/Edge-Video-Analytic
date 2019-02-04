@@ -27,7 +27,7 @@ pthread_mutex_t statusLocks[NUM_NODES];
 int nodeStatus[NUM_NODES] = {0};
 int comm_fd[NUM_NODES];
 char* clientIP[NUM_NODES];
-  
+
 vector<queue <int> > sQList;
 vector<queue <int> > rQList;
 
@@ -84,6 +84,7 @@ void *sendData(void* index) {
         pthread_mutex_unlock(&sendLocks[statIndex]);
       }
       close(sock);
+      cout << "send sock closed" << endl;
     }
   }
 }
@@ -92,7 +93,6 @@ void *sendData(void* index) {
 void *recvData(void* index) {
   int statIndex = *((int*) index);
   int data = 0;
-  int retCode = 1;
           cout << "recv" << endl;
   while(1) {
     pthread_mutex_lock(&statusLocks[statIndex]);
@@ -100,6 +100,7 @@ void *recvData(void* index) {
     pthread_mutex_unlock(&statusLocks[statIndex]);
 
     if(status > 0)  {
+      int retCode = 1;
       while(retCode > 0) {
         retCode = recv(comm_fd[statIndex], &data, sizeof(int), 0);
         
@@ -107,12 +108,13 @@ void *recvData(void* index) {
         rQList[statIndex].push(data);
         pthread_mutex_unlock(&recvLocks[statIndex]);
     
-        cout << data << " status: " << status << endl;
+        cout << data << " recv retCode: " << retCode << endl;
       }
       pthread_mutex_lock(&statusLocks[statIndex]);
       nodeStatus[statIndex] = 0;
       pthread_mutex_unlock(&statusLocks[statIndex]);
       close(comm_fd[statIndex]);
+      cout << "recv sock closed" << endl;
     }
   }
 }
@@ -150,6 +152,7 @@ void *listenFunc(void*) {
   while(1) {
     listen(listen_fd, 10);
     int comm_Temp = accept(listen_fd, (struct sockaddr*) &clientAddr, &clLen);
+    cout << "IPnew: " << inet_ntoa(clientAddr.sin_addr) << endl;
     int useIndex = -1;
     for (int i = 0; i < NUM_NODES; ++i) {
       if(clientIP[i] == NULL) {
@@ -157,15 +160,20 @@ void *listenFunc(void*) {
       }
       else {
         if(!strcmp(clientIP[i], inet_ntoa(clientAddr.sin_addr))) {
+          //cout << "IPnew: " << inet_ntoa(clientAddr.sin_addr) << endl;
+          //cout << "IPold: " << clientIP[i] << endl;
           useIndex = i;
           i = NUM_NODES;
+          //cout << "found index: " << useIndex << endl;
         }
       }
     }
-
+    cout << "UseIndex: " << useIndex << endl;
     if(useIndex > -1) {
-      pthread_mutex_lock(&statusLocks[useIndex]);
+      pthread_mutex_lock(&statusLocks[useIndex]); 
+      //cout << "IPb: " << clientIP[useIndex] << endl;
       clientIP[useIndex] = inet_ntoa(clientAddr.sin_addr);
+      cout << "IPa: " << clientIP[useIndex] << endl;
       comm_fd[useIndex] = comm_Temp;
       nodeStatus[useIndex] = 1;
       pthread_mutex_unlock(&statusLocks[useIndex]);
@@ -215,7 +223,7 @@ int main(int argc, char const *argv[]) {
   }
     ++j;
   if(j%30==0) {
-    sleep(2);
+    sleep(3);
   }  
  }
 
