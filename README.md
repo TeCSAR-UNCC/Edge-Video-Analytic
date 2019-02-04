@@ -24,7 +24,9 @@ YOLOv3 weights will need to be downloaded separately
 
 ## Changelog:
 #### 2019-02-04: 
--Moved files to GitHub
+
+-Moved files to GitHub 
+
 -YOLOv3 weights removed due to size
 
 
