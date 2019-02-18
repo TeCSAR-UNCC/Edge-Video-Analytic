@@ -15,3 +15,7 @@ This is the readme to help yall with using the custom code for openpose.
 5) Use this line of code to run it: ./build/examples/user_code/op_bounding_boxes_SD.bin -camera_resolution 640x480 -net_resolution 128x96
 
 If it breaks even though it compiles, I don't know it might be a dependencies thing or ya broke something.
+
+If you want the information about the different types of flags that are available, go to: /include/openpose/flags.hpp
+Or run: ./build/examples/openpose/openpose.bin --help
+
