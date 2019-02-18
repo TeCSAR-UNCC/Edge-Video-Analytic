@@ -26,7 +26,7 @@ pthread_mutex_t recvLocks[NUM_NODES];
 pthread_mutex_t statusLocks[NUM_NODES];
 int nodeStatus[NUM_NODES] = {0};
 int comm_fd[NUM_NODES];
-char* clientIP[NUM_NODES];
+string clientIP[NUM_NODES];
 
 vector<queue <int> > sQList;
 vector<queue <int> > rQList;
@@ -52,7 +52,7 @@ void *sendData(void* index) {
       /* Initilize send socket*/
       int sock;
       pthread_mutex_lock(&statusLocks[statIndex]);
-      char* IPADDR = clientIP[statIndex];
+      const char* IPADDR = clientIP[statIndex].c_str();
       pthread_mutex_unlock(&statusLocks[statIndex]);
 	    struct sockaddr_in servaddr;
 
@@ -144,7 +144,7 @@ void *listenFunc(void*) {
    int listen_fd;
 
     /* Initilize server: General structure*/
-	  struct sockaddr_in servaddr;
+    struct sockaddr_in servaddr;
     struct sockaddr_in clientAddr;
     socklen_t clLen = sizeof(clientAddr);
 
@@ -161,7 +161,7 @@ void *listenFunc(void*) {
   /* Spawn send and recv threads*/
   for(int i = 0; i < NUM_NODES; ++i) {
     statusIndex[i] = i;
-    clientIP[i] = NULL;
+    clientIP[i].clear();
     pthread_create(&recvThreads[i], NULL, recvData, (void*) &statusIndex[i]);
     pthread_create(&sendThreads[i], NULL, sendData, (void*) &statusIndex[i]);
     cout << i << endl;
@@ -175,12 +175,12 @@ void *listenFunc(void*) {
     cout << "IPnew: " << inet_ntoa(clientAddr.sin_addr) << endl;
     int useIndex = -1;
     for (int i = 0; i < NUM_NODES; ++i) {
-      if(clientIP[i] == NULL) {
+      if(clientIP[i].empty()) {
         useIndex = i;
       }
       else {
-        if(strcmp(clientIP[i], inet_ntoa(clientAddr.sin_addr))==0) {
-          //cout << "IPnew: " << inet_ntoa(clientAddr.sin_addr) << endl;
+        if(strcmp(clientIP[i].c_str(), inet_ntoa(clientAddr.sin_addr))==0) {
+          //cout << "IPnew2: " << inet_ntoa(clientAddr.sin_addr) << endl;
           //cout << "IPold: " << clientIP[i] << endl;
           useIndex = i;
           i = NUM_NODES;
@@ -190,9 +190,12 @@ void *listenFunc(void*) {
     }
     cout << "UseIndex: " << useIndex << endl;
     if(useIndex > -1) {
-      pthread_mutex_lock(&statusLocks[useIndex]); 
-      //cout << "IPb: " << clientIP[useIndex] << endl;
-      clientIP[useIndex] = inet_ntoa(clientAddr.sin_addr);
+      pthread_mutex_lock(&statusLocks[useIndex]);
+if(!clientIP[useIndex].empty()) {
+      cout << "IPb: " << clientIP[useIndex] << endl;
+}
+      string str(inet_ntoa(clientAddr.sin_addr));
+      clientIP[useIndex] = str;
       cout << "IPa: " << clientIP[useIndex] << endl;
       comm_fd[useIndex] = comm_Temp;
       nodeStatus[useIndex] = 1;
