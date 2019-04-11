@@ -1,122 +1,140 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+######################### Binary Files #########################
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.cuo
 
-# C extensions
+# Compiled Dynamic libraries
+*.so*
+*.dylib
 
+# Compiled Static libraries
+*.lai
+*.la
+*.a
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Compiled protocol buffers
+*.pb.h
+*.pb.cc
+*_pb2.py
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Compiled python
+*.pyc
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Compiled MATLAB
+*.mex*
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
+# IPython notebook checkpoints
 .ipynb_checkpoints
 
-# pyenv
-.python-version
+# LevelDB files
+*.sst
+*.ldb
+LOCK
+LOG*
+CURRENT
+MANIFEST-*
 
-# celery beat schedule file
-celerybeat-schedule
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-
-# vim tmp file
+######################### IDEs Files #########################
+# Editor temporaries
+*.swp
 *~
 
-# PyCharm
-.idea/
+# Sublime Text settings
+*.sublime-workspace
+*.sublime-project
 
-#*.jpg
-#*.png
-#coco.names
-#*.weights
+# Eclipse Project settings
+*.*project
+.settings
 
-# VSCode
-.vscode/
+# QtCreator files
+*.user
 
-# Tensorflow
-checkpoint
-*.ckpt.*
+# PyCharm files
+.idea
+
+# OSX dir files
+.DS_Store
+._.DS_Store
+
+# Vim files
+cscope.*
+tags
+.clang_complete
+.vim
+
+######################### Windows (Visual Studio) Files #########################
+*.db
+*.deps
+*.obj
+*.opendb
+*.pdb
+
+######################### Windows (Visual Studio) Folders and Compressed files #########################
+*.vs/
+*x64/
+# Allowing this file (removed *.user for Qt)
+!*.vcxproj.user
+
+######################### Caffe Files / Folders #########################
+# User's build configuration
+Makefile
+Makefile.config
+
+# Data and models are either
+	# 1. reference, and not casually committed
+	# 2. custom, and live on their own unless they're deliberated contributed
+distribute/
+*.caffemodel
+*.caffemodel.h5
+*.solverstate
+*.solverstate.h5
+*.binaryproto
+*leveldb
+*lmdb
+
+# Camera parameters
+*.xml
+
+######################### 3rd-party Folders and Zip Files #########################
+3rdparty/caffe/.git
+3rdparty/caffe/.github
+3rdparty/asio/
+3rdparty/eigen/
+3rdparty/windows/caffe/
+3rdparty/windows/caffe_cpu/
+3rdparty/windows/caffe_opencl/
+3rdparty/windows/caffe3rdparty/
+3rdparty/windows/opencv/
+3rdparty/windows/freeglut/
+3rdparty/windows/spinnaker/
+3rdparty/*zip
+3rdparty/windows/*zip
+
+######################### Compilation (build, distribute & bins) Files / Folders #########################
+*.bin
+*.testbin
+build
+build*
+.build*
+*cmake_build
+distribute/*
+python/caffe/proto/
+
+######################### Generated Documentation #########################
+_site
+docs/_site
+docs/dev
+docs/gathered
+doxygen
+html/
+
+######################### Video Files #########################
+# Testing videos
+*.mp4
+*.mov
+
+######################### Validation Scripts & Testing #########################
+output*/
