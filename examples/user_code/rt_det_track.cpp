@@ -213,7 +213,7 @@ public:
     }
 
     void initializationOnThread() {}
-    
+
 	/********************************************************/
 	/********************************************************/
 	/***************TensorRT Inference Functions*************/
@@ -262,170 +262,117 @@ public:
 	/*******************************************************/
 	/*******************************************************/
 	/*******************************************************/
-    
 
     void work(std::shared_ptr<std::vector<std::shared_ptr<UserDatum>>>& datumsPtr)
     {
     	std::vector<cv::Mat> inputCrops;
     	//cv::Mat image;
-        try
-        {
+        try {
             if (datumsPtr != nullptr && !datumsPtr->empty()) {
                 // Show in command line the resulting pose keypoints for body, face and hands
                 timespec ts;
                 clock_gettime(CLOCK_REALTIME, &ts); // Works on Linux
-                //op::log(std::to_string(ts.tv_nsec));
-                //op::log("\nKeypoints:" + std::to_string(datumsPtr->size()));
                 // Accesing each element of the keypoints
                 auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-                //op::log("Person pose keypoints:");
                 auto thresholdRectangle = 0.1f;
-				auto thresholdKeypoints = 0.5f;
-				auto minKeypoints = 15;
-				//minKeypoints = 10 thresholdKeypoints = 0.5
-                //Delay for attempting asynchronous
-                //usleep(100000);
-				//std::cout << poseKeypoints.toString() << std::endl;
-				
-                for (auto person = 0 ; person < (std::min(poseKeypoints.getSize(0), INPUT_BS)); person++)
-                {
-			/* Daniel's Edits: Resrict Re-ID to BB that have 12 keypoints or more*/
-			//std::cout << "PoseKeypoints what is it:" << poseKeypoints[person].sizeof()/posekeypoints[person] << std::endl;
-			int keypointCount = op::getValidBBox(poseKeypoints,person, thresholdKeypoints, minKeypoints);
-if(keypointCount >= minKeypoints ) {
-					auto rectBuffer = op::getKeypointsRectangle(poseKeypoints,person, thresholdRectangle); //Gets the rectangle information from the keypoints	
-				//std::cout << "Aspect Ratio" << (rectBuffer.height/rectBuffer.width) << "\n";
-					array<float,4> arrayBuffer = {rectBuffer.x, rectBuffer.y, rectBuffer.width, rectBuffer.height};
-					datumsPtr->at(0)->personRectangleFloats.push_back(arrayBuffer);
-					datumsPtr->at(0)->keypointList.push_back(keypointCount);
-					cv::Rect rec(rectBuffer.x,rectBuffer.y,rectBuffer.width,rectBuffer.height); //Converts from openpose rectangle to opencv rectangle
+                auto thresholdKeypoints = 0.5f;
+                auto minKeypoints = 15;
 
+                for (auto person = 0 ; person < (std::min(poseKeypoints.getSize(0), INPUT_BS)); person++) {
+                    /* Daniel's Edits: Resrict Re-ID to BB that have 12 keypoints or more*/
+                    int keypointCount = op::getValidBBox(poseKeypoints,person, thresholdKeypoints, minKeypoints);
+                    if(keypointCount >= minKeypoints ) {
+                        auto rectBuffer = op::getKeypointsRectangle(poseKeypoints,person, thresholdRectangle); //Gets the rectangle information from the keypoints
+                        array<float,4> arrayBuffer = {rectBuffer.x, rectBuffer.y, rectBuffer.width, rectBuffer.height};
+                        datumsPtr->at(0)->personRectangleFloats.push_back(arrayBuffer);
+                        datumsPtr->at(0)->keypointList.push_back(keypointCount);
+                        cv::Rect rec(rectBuffer.x,rectBuffer.y,rectBuffer.width,rectBuffer.height); //Converts from openpose rectangle to opencv rectangle
 
-//***********************************************EDIT***************************************
-					bboxes[stepBoxPost][person][0] = rectBuffer.x;
-					bboxes[stepBoxPost][person][1] = rectBuffer.y;
-					bboxes[stepBoxPost][person][2] = rectBuffer.width;
-					bboxes[stepBoxPost][person][3] = rectBuffer.height;
+                        bboxes[stepBoxPost][person][0] = rectBuffer.x;
+                        bboxes[stepBoxPost][person][1] = rectBuffer.y;
+                        bboxes[stepBoxPost][person][2] = rectBuffer.width;
+                        bboxes[stepBoxPost][person][3] = rectBuffer.height;
 
-					if(person == 0) {
-						//std::cout << "Post: ";
-						//std::cout << "Detect #: " << person << " x= " << rectBuffer.x << " y= " << rectBuffer.y << " w= " << rectBuffer.width << " h= " << rectBuffer.height << std::endl;
-					}
+                        op::keepRoiInside(rec,datumsPtr->at(0)->cvInputData.cols,datumsPtr->at(0)->cvInputData.rows);
+                        if((rec.width > 0) && (rec.height > 0) && (rec.x < datumsPtr->at(0)->cvInputData.cols) && (rec.y < datumsPtr->at(0)->cvInputData.rows)) {
+                            if(rec.x+rec.width > datumsPtr->at(0)->cvInputData.cols)
+                                rec.width = datumsPtr->at(0)->cvInputData.cols - rec.x - 1;
+                            if(rec.y+rec.height > datumsPtr->at(0)->cvInputData.rows)
+                                rec.height = datumsPtr->at(0)->cvInputData.rows - rec.y - 1;
+                            int img_width = datumsPtr->at(0)->cvInputData.cols;
+                            int img_height = datumsPtr->at(0)->cvInputData.rows;
+                            rec.x = max(rec.x,0);
+                            rec.y = max(rec.y,0);
+                            rec.width = min(rec.width, img_width-rec.x-1);
+                            rec.height = min(rec.height, img_height-rec.y-1);
+                            datumsPtr->at(0)->personRectangle.push_back(rec); //Inserts the rectangle into the datums vector: personRectangle.
+                            cv::Mat img = datumsPtr->at(0)->cvInputData(rec);
+                            cv::Size s = img.size();
+                            if(s.width > 0 && s.height > 0) {
+                                cv::resize(img, img, cv::Size(128, 256));
+                                inputCrops.push_back(img);
+                            }
+                        }
+                    }
+                }
 
-					op::keepRoiInside(rec,datumsPtr->at(0)->cvInputData.cols,datumsPtr->at(0)->cvInputData.rows);
-					if((rec.width > 0) && (rec.height > 0) && (rec.x < datumsPtr->at(0)->cvInputData.cols) && (rec.y < datumsPtr->at(0)->cvInputData.rows)) {
-						if(rec.x+rec.width > datumsPtr->at(0)->cvInputData.cols)
-							rec.width = datumsPtr->at(0)->cvInputData.cols - rec.x - 1;
-						if(rec.y+rec.height > datumsPtr->at(0)->cvInputData.rows)
-							rec.height = datumsPtr->at(0)->cvInputData.rows - rec.y - 1;
-						int img_width = datumsPtr->at(0)->cvInputData.cols;
-						int img_height = datumsPtr->at(0)->cvInputData.rows;
-						//std::cout << "Col: " << datumsPtr->at(0)->cvInputData.cols << std::endl;
-						//std::cout << "Row: " << datumsPtr->at(0)->cvInputData.rows << std::endl;
-						rec.x = max(rec.x,0);
-						//std::cout << "X: " << rec.x << std::endl;
-						rec.y = max(rec.y,0);
-						//std::cout << "Y: " << rec.y << std::endl;
-						rec.width = min(rec.width, img_width-rec.x-1);
-						//std::cout << "XR: " << rec.x + rec.width << std::endl;
-						rec.height = min(rec.height, img_height-rec.y-1);
-						//std::cout << "YR: " << rec.y + rec.height << std::endl;
-						datumsPtr->at(0)->personRectangle.push_back(rec); //Inserts the rectangle into the datums vector: personRectangle.
-						//op::keepRoiInside(datumsPtr->at(0)->personRectangle[person],datumsPtr->at(0)->cvOutputData.cols,datumsPtr->at(0)->cvOutputData.rows);
-						//image = datumsPtr->at(0)->cvInputData(datumsPtr->at(0)->personRectangle[person]);
-						cv::Mat img = datumsPtr->at(0)->cvInputData(rec);
-						cv::Size s = img.size();
-						if(s.width > 0 && s.height > 0) {
-							cv::resize(img, img, cv::Size(128, 256));
-							inputCrops.push_back(img);
-						}
-					}
-}
-		}
-		
-		//cv::Mat image(128,256, CV_32FC3);
-		//image = cv::imread("/usr/src/tensorrt/data/mnist/00000000_0000_00000000.jpg", CV_LOAD_IMAGE_COLOR);   // Read the file
+                float data[INPUT_BS][INPUT_CH][INPUT_H][INPUT_W] ={0};
 
-		/*auto t1 = std::chrono::high_resolution_clock::now();*/
-	float data[INPUT_BS][INPUT_CH][INPUT_H][INPUT_W] ={0};
-	//if (datumsPtr != nullptr && !datumsPtr->empty()) {
-	//auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-	//if(poseKeypoints.getSize(0) > 0) {
-		//cv::resize(image, image, cv::Size(128, 256));
-		std::vector<cv::Mat> p;
-		cv::Mat fill(cv::Size(128, 256), CV_32FC1, cv::Scalar(0)); 
-		p.push_back(fill);
-		p.push_back(fill);
-		p.push_back(fill);
-		//cv::split(image, p);
+                std::vector<cv::Mat> p;
+                cv::Mat fill(cv::Size(128, 256), CV_32FC1, cv::Scalar(0)); 
+                p.push_back(fill);
+                p.push_back(fill);
+                p.push_back(fill);
 
+                float mean[3] = {0.486,0.459,0.408};
+                float stdDev[3] = {0.229,0.224,0.225};
+                int vectorSize = inputCrops.size();
+                for(int b = 0; b < INPUT_BS; b++) {
+                    if(b < vectorSize) {
+                        cv::split(inputCrops[b], p);
+                    }
+                    for(int c = 0; c < INPUT_CH; ++c) {
+                        for(int h = 0; h < INPUT_H; ++h) {
+                            for(int w = 0; w < INPUT_W; ++w) {
+                                data[b][c][h][w] = ((((float)p[2-c].at<uchar>(h, w))/255)-mean[c])/stdDev[c];
+                            }
+                        }
+                    }
+                }
 
-		float mean[3] = {0.486,0.459,0.408};
-		float stdDev[3] = {0.229,0.224,0.225};
-		int vectorSize = inputCrops.size();
-		//std::vector<cv::Mat> p;
-		//for(int b = 0; b < 16; b++) {
-		for(int b = 0; b < INPUT_BS; b++) {
-			if(b < vectorSize) {
-				cv::split(inputCrops[b], p);
-				//cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
-				//cv::imshow( "Display window", inputCrops[b] );                   // Show our image inside it.
-				//cv::waitKey(0);
-			}
-			for(int c = 0; c < INPUT_CH; ++c) {
-				for(int h = 0; h < INPUT_H; ++h) {
-				    for(int w = 0; w < INPUT_W; ++w) {
-						data[b][c][h][w] = ((((float)p[2-c].at<uchar>(h, w))/255)-mean[c])/stdDev[c];
-				    }
-				}
-			}
-		}
-	//}
-	//}
-		/*auto t2 = std::chrono::high_resolution_clock::now();
-		std::cout << "f() took "
-		          << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-		          << " milliseconds\n";*/
+                // run inference
+                float* dataP = (float*)data;
+                float output[OUTPUT_SIZE*INPUT_BS];
+                doInference(*context, dataP, output, INPUT_BS);
 
-		// run inference
-		float* dataP = (float*)data;
-		float output[OUTPUT_SIZE*INPUT_BS];
-		doInference(*context, dataP, output, INPUT_BS);
-		
-		std::copy(std::begin(output), std::end(output), std::begin(featureVectors[stepPost]));
-		//std::copy(output[0], output[INPUT_BS*OUTPUT_SIZE-1], featureVectors[stepPost][0]);
-		featureVectors[stepPost][INPUT_BS*OUTPUT_SIZE] = (float)vectorSize;
+                std::copy(std::begin(output), std::end(output), std::begin(featureVectors[stepPost]));
 
-		for (auto i = 0 ; (unsigned)i < datumsPtr->at(0)->personRectangle.size(); i++) {
-			cv::Mat detection(1,OUTPUT_SIZE,CV_32F);
-			void* ptr = &featureVectors[stepOutput][i*OUTPUT_SIZE];
-			std::memcpy(detection.data, ptr, OUTPUT_SIZE*sizeof(float));
-			datumsPtr->at(0)->mobileFv.push_back(detection);
-		}
+                featureVectors[stepPost][INPUT_BS*OUTPUT_SIZE] = (float)vectorSize;
 
-		if(stepPost < PINGPONG_SIZE-1) {
-			stepPost++;
-		}
-		else {
-			stepPost = 0;
-		}
-		if(stepBoxPost < BOX_PINGPONG_SIZE-1) {
-			stepBoxPost++;
-		}
-		else {
-			stepBoxPost = 0;
-		}
-		
-		
+                for (auto i = 0 ; (unsigned)i < datumsPtr->at(0)->personRectangle.size(); i++) {
+                    cv::Mat detection(1,OUTPUT_SIZE,CV_32F);
+                    void* ptr = &featureVectors[stepOutput][i*OUTPUT_SIZE];
+                    std::memcpy(detection.data, ptr, OUTPUT_SIZE*sizeof(float));
+                    datumsPtr->at(0)->mobileFv.push_back(detection);
+                }
+
+                if(stepPost < PINGPONG_SIZE-1) {
+                    stepPost++;
+                } else {
+                    stepPost = 0;
+                }
+
+                if(stepBoxPost < BOX_PINGPONG_SIZE-1) {
+                    stepBoxPost++;
+                } else {
+                    stepBoxPost = 0;
+                }
             }
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             this->stop();
             op::error(e.what(), __LINE__, __FUNCTION__, __FILE__);
         }
-        
-		
+
     }
 };
 
