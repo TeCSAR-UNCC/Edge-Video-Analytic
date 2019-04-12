@@ -265,7 +265,8 @@ DEFINE_string(write_bvh,                "",             "Experimental, not avail
 DEFINE_string(udp_host,                 "",             "Experimental, not available yet. IP for UDP communication. E.g., `192.168.0.1`.");
 DEFINE_string(udp_port,                 "8051",         "Experimental, not available yet. Port number for UDP communication.");
 DEFINE_string(server_ip,                "",             "IP Address for the ReID Server");
-DEFINE_int32(use_dla,                  0,              "Use NVDLA cores for ReID inference");
+DEFINE_int32(use_dla,                   0,              "Use NVDLA cores for ReID inference");
+DEFINE_uint64(node_id,                  1,              "ID for the edge node");
 #endif // OPENPOSE_FLAGS_DISABLE_POSE
 
 #endif // OPENPOSE_FLAGS_HPP

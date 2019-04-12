@@ -41,6 +41,8 @@ namespace op
     OP_API Point<int> flagsToPoint(const std::string& pointString, const std::string& pointExample = "1280x720");
 
 	OP_API int flagsToDLA(const int use_dla);
+
+	OP_API uint64_t flagsToNodeID(const uint64_t node_id);
 }
 
 #endif // OPENPOSE_UTILITIES_FLAGS_TO_OPEN_POSE_HPP

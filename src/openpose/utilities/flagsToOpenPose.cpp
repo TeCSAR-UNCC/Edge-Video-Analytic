@@ -348,4 +348,21 @@ namespace op
             return -1;
         }
     }
+
+    uint64_t flagsToNodeID(const uint64_t node_id)
+    {
+        try
+        {
+            if (node_id == 0) {
+                return 1000000;
+            } else {
+                return node_id * 1000000;
+            }
+        }
+        catch (const std::exception& e)
+        {
+            error(e.what(), __LINE__, __FUNCTION__, __FILE__);
+            return -1;
+        }
+    }
 }
