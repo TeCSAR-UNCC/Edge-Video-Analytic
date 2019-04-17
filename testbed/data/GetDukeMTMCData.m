@@ -12,11 +12,11 @@ fprintf(['Download path: ' dataset.savePath '\n']);
 GET_ALL               = false; % Set this to true if you want to download everything
 GET_GROUND_TRUTH      = true;
 GET_CALIBRATION       = true;
-GET_VIDEOS            = true;
+GET_VIDEOS            = false;
 GET_DPM               = false;
 GET_OPENPOSE          = true;
 GET_FGMASKS           = false;
-GET_REID              = true;
+GET_REID              = false;
 GET_VIDEO_REID        = false;
 GET_FRAMES            = false; % Not included in GET_ALL to save space, must be manually set on
 
