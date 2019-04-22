@@ -237,15 +237,15 @@ public:
                             std::memcpy(obj_table[eucIndex].fv.data, ptr, OUTPUT_SIZE*sizeof(float));
                             std::memcpy(&obj_table[eucIndex].sendObject.fv_array, &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE], OUTPUT_SIZE*sizeof(float));
                             obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointList.at(detDone.at(i));
+							auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+							auto thresholdKeypoints = 0.5f;
+							obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,detDone.at(i), thresholdKeypoints);
                             if ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > KEY_SEND_THRESH) || ((obj_table[eucIndex].sentToServer == 0) &&
-                                (datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH))) {
+                                (datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH)) || (obj_table[eucIndex].sendObject.anomalyFlag==1)) {
                                 //put in send Q
                                 std::cout << "Sent: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
                                 obj_table[eucIndex].sendObject.currentCamera = CAMERA_ID;
                                 obj_table[eucIndex].sentToServer = 1;
-								auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-								auto thresholdKeypoints = 0.5f;
-								obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,detDone.at(i), thresholdKeypoints);
                                 pthread_mutex_lock(&locks[sendLock]);
                                 sendQ.push(obj_table[eucIndex].sendObject);
                                 pthread_mutex_unlock(&locks[sendLock]);
