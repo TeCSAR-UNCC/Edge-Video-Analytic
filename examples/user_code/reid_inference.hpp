@@ -81,6 +81,8 @@ class ReIDInference : public op::Worker<std::shared_ptr<std::vector<std::shared_
                 for (auto person = 0 ; person < (std::min(poseKeypoints.getSize(0), INPUT_BS)); person++) {
                     /* Daniel's Edits: Resrict Re-ID to BB that have 12 keypoints or more*/
                     int keypointCount = op::getValidBBox(poseKeypoints,person, thresholdKeypoints, minKeypoints);
+					//print keypoints
+					//std::cout << poseKeypoints.toString();
                     if(keypointCount >= minKeypoints ) {
                         auto rectBuffer = op::getKeypointsRectangle(poseKeypoints,person, thresholdRectangle); //Gets the rectangle information from the keypoints
                         array<float,4> arrayBuffer = {rectBuffer.x, rectBuffer.y, rectBuffer.width, rectBuffer.height};

@@ -71,6 +71,9 @@ namespace op
 
     template <typename T>
     int getValidBBox(const Array<T>& keypoints, const int person, const T threshold, const int minKeypoint);
+
+	template <typename T>
+	int anomalySend(const Array<T>& keypoints, const int person, const T threshold);
 }
 
 #endif // OPENPOSE_UTILITIES_KEYPOINT_HPP

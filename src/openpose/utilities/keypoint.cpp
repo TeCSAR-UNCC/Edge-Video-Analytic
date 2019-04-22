@@ -606,13 +606,23 @@ namespace op
             const auto keypointPtr = keypoints.getConstPtr() + person * keypoints.getSize(1) * keypoints.getSize(2);
 
             int keypointCount = 0;
+			bool part4Up = false;
+			bool part7Up = false;
+			const auto part1Y = keypointPtr[3*1 + 1];
 
             for (auto part = 0 ; part < numberKeypoints ; part++)
             {
                 const auto score = keypointPtr[3*part + 2];
+                const auto yCoord = keypointPtr[3*part + 1];
                 if (score > threshold)
                 {
-	        		++keypointCount;
+					if((part==4) && (yCoord<part1Y)) {
+						part4Up=true;
+					}
+					else if((part==7) && (yCoord<part1Y)) {
+						part7Up=true;
+					}
+					++keypointCount;
                 }
             }
             if (keypointCount > minKeypoint)
@@ -632,4 +642,51 @@ namespace op
     /****************************************/
     /**************We edited above***********/
     /****************************************/
+
+    template <typename T>
+    int anomalySend(const Array<T>& keypoints, const int person, const T threshold)
+    {
+        try
+        {
+            const auto numberKeypoints = keypoints.getSize(1);
+		    //int minKeypoint = 15;
+            // Sanity check
+            if (numberKeypoints < 1)
+                error("Number body parts must be > 0.", __LINE__, __FUNCTION__, __FILE__);
+            // Define keypointPtr
+            const auto keypointPtr = keypoints.getConstPtr() + person * keypoints.getSize(1) * keypoints.getSize(2);
+
+            int keypointCount = 0;
+			bool part4Up = false;
+			bool part7Up = false;
+			const auto part1Y = keypointPtr[3*1 + 1];
+
+            for (auto part = 0 ; part < numberKeypoints ; part++)
+            {
+                const auto score = keypointPtr[3*part + 2];
+                const auto yCoord = keypointPtr[3*part + 1];
+                if (score > threshold)
+                {
+					if((part==4) && (yCoord<part1Y)) {
+						part4Up=true;
+					}
+					else if((part==7) && (yCoord<part1Y)) {
+						part7Up=true;
+					}
+					++keypointCount;
+                }
+            }
+            if ((part4Up==true) && (part7Up==true))
+                return 1;
+            else
+                return 0;
+        }
+        catch (const std::exception& e)
+        {
+            error(e.what(), __LINE__, __FUNCTION__, __FILE__);
+            return 0;
+        }
+    }
+    template OP_API int anomalySend(const Array<float>& keypoints, const int person, const float threshold);
+    template OP_API int anomalySend(const Array<double>& keypoints, const int person, const double threshold);
 }

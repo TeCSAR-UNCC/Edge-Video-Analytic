@@ -194,6 +194,7 @@ int main(int argc, char *argv[])
 		obj_table[i].sendObject.yPos = 0;
 		obj_table[i].sendObject.height = 0;
 		obj_table[i].sendObject.width = 0;
+		obj_table[i].sendObject.anomalyFlag = 0;
 		obj_table[i].life = 0;
 		obj_table[i].sentToServer = 0;
 	}

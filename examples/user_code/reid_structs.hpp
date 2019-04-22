@@ -5,6 +5,7 @@
 #include "reid_constants.hpp"
 
 struct personType{
+	int anomalyFlag;
 	int currentCamera;
 	int label;
 	float fv_array[OUTPUT_SIZE];

@@ -36,6 +36,7 @@ string clientIP[NUM_NODES];
 
 struct personType
 {
+	int anomalyFlag;
 	int currentCamera;
 	int label;
 	float fv_array[OUTPUT_SIZE];
@@ -348,7 +349,7 @@ int main(int argc, char const *argv[]) {
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 				  }
-				  else if (currentIndex < SIZEOFDB){
+				  else if ((currentIndex < SIZEOFDB) && (tmpPerson.anomalyFlag == 1)){
 					  cout << "currentIndex = " << currentIndex << endl;
 					  dataBase[currentIndex].personObject.xPos = tmpPerson.xPos;
 					  dataBase[currentIndex].personObject.yPos = tmpPerson.yPos;
@@ -368,7 +369,7 @@ int main(int argc, char const *argv[]) {
 					  dataBase[currentIndex].lru = 0;
 					  currentIndex++;
 				  }
-				  else{
+				  else if (tmpPerson.anomalyFlag == 1) {
 					  cout << "Database is full. Initiating replacement policy..." << endl;
 					  for(int k=0; k < SIZEOFDB; k++){
 						  if(max < dataBase[k].lru){

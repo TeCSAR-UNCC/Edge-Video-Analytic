@@ -106,9 +106,9 @@ public:
                             obj_table[j].life--;
                             if((obj_table[j].life == 0)  && (obj_table[j].sentToServer == 1)) {
                                 obj_table[j].sendObject.currentCamera = -1;
-                                pthread_mutex_lock(&locks[sendLock]);
-                                sendQ.push(obj_table[j].sendObject);
-                                pthread_mutex_unlock(&locks[sendLock]);
+	                            pthread_mutex_lock(&locks[sendLock]);
+	                            sendQ.push(obj_table[j].sendObject);
+	                            pthread_mutex_unlock(&locks[sendLock]);
                             }
                         }
                     }
@@ -243,6 +243,9 @@ public:
                                 std::cout << "Sent: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
                                 obj_table[eucIndex].sendObject.currentCamera = CAMERA_ID;
                                 obj_table[eucIndex].sentToServer = 1;
+								auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+								auto thresholdKeypoints = 0.5f;
+								obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,detDone.at(i), thresholdKeypoints);
                                 pthread_mutex_lock(&locks[sendLock]);
                                 sendQ.push(obj_table[eucIndex].sendObject);
                                 pthread_mutex_unlock(&locks[sendLock]);
@@ -313,12 +316,11 @@ public:
                         int colorIndex = 9;
                         if(id_labels[person][1] == 1) {
                             colorIndex = labelInt%9;
+		                    cv::rectangle(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->personRectangle[person],
+		                                  cv::Scalar(colors[colorIndex][2],colors[colorIndex][1],colors[colorIndex][0]),2); //Draws the bounding box around the peson of interest
+
+		                    setLabel(datumsPtr->at(0)->cvOutputData, finalLabel, cv::Point(datumsPtr->at(0)->personRectangle[person].x,datumsPtr->at(0)->personRectangle[person].y), colorIndex);
                         }
-
-                        cv::rectangle(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->personRectangle[person],
-                                      cv::Scalar(colors[colorIndex][2],colors[colorIndex][1],colors[colorIndex][0]),2); //Draws the bounding box around the peson of interest
-
-                        setLabel(datumsPtr->at(0)->cvOutputData, finalLabel, cv::Point(datumsPtr->at(0)->personRectangle[person].x,datumsPtr->at(0)->personRectangle[person].y), colorIndex);
                     }
                 }
             }
