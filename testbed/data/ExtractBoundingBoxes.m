@@ -47,5 +47,7 @@ for det = 1:num_detections
 end
 
 %%
-save('camera5_full_body.mat','full_bboxes');
-save('camera5_cropped_body.mat','cropped_bboxes');
+bboxes = full_bboxes;
+save('camera5_full_body.mat','bboxes');
+bboxes = cropped_bboxes;
+save('camera5_cropped_body.mat','bboxes');
