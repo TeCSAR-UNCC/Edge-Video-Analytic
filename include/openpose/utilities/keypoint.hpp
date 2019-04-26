@@ -74,6 +74,9 @@ namespace op
 
 	template <typename T>
 	int anomalySend(const Array<T>& keypoints, const int person, const T threshold);
+
+    template <typename T>
+    void renderSingleKeypointsCpu(cv::Mat& frameArray, const Array<T>& keypoints, const T threshold, const int personNum);
 }
 
 #endif // OPENPOSE_UTILITIES_KEYPOINT_HPP

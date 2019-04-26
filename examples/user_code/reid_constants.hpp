@@ -2,7 +2,7 @@
 #define __REID_CONSTANTS_HPP__
 
 #define NUM_OBJECTS 200
-#define CAMERA_ID 1
+#define CAMERA_ID 2
 #define EUC_THESH 5
 #define IOU_THRESH 0.5
 #define MULTI_MATCH_THRESH 2
@@ -21,6 +21,6 @@ static const int INPUT_W = 128;
 static const int INPUT_CH = 3;
 static const int INPUT_BS = 16;
 static const int OUTPUT_SIZE = 1280;
-static const uint64_t MAX_ID_OFFSET = 1000000;
+static const int64_t MAX_ID_OFFSET = 1000000;
 
 #endif //__REID_CONSTANTS_HPP__

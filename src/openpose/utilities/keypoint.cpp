@@ -3,6 +3,12 @@
 #include <openpose/utilities/fastMath.hpp>
 #include <openpose/utilities/keypoint.hpp>
 
+//*****************
+#include <openpose/pose/poseParameters.hpp>
+#include <openpose/pose/renderPose.hpp>
+#include <iostream>
+//*************
+
 namespace op
 {
     const std::string errorMessage = "The Array<T> is not a RGB image or 3-channel keypoint array. This function"
@@ -689,4 +695,114 @@ namespace op
     }
     template OP_API int anomalySend(const Array<float>& keypoints, const int person, const float threshold);
     template OP_API int anomalySend(const Array<double>& keypoints, const int person, const double threshold);
+
+	template <typename T>
+	void renderSingleKeypointsCpu(cv::Mat& frameArray, const Array<T>& keypoints, const T threshold, const int personNum)
+    {
+        try
+        {
+            if (!frameArray.empty())
+            {
+                // Array<T> --> cv::Mat
+                auto frame = frameArray;
+                // Sanity check
+                if (frame.channels() != 3)
+                    error(errorMessage, __LINE__, __FUNCTION__, __FILE__);
+
+                // Get frame channels
+                const auto width = frame.size[1];
+                const auto height = frame.size[0];
+                const auto area = width * height;
+                // Parameters
+				const PoseModel poseModel = PoseModel::BODY_25D;
+				const auto thicknessCircleRatio = 1.f/75.f;
+                const auto thicknessLineRatioWRTCircle = 0.75f;
+                const auto& pairs = getPoseBodyPartPairsRender(poseModel);
+                const auto& poseScales = getPoseScales(poseModel);
+				const std::vector<float> colors = getPoseColors(poseModel);               
+
+				const auto lineType = 8;
+                const auto shift = 0;
+                const auto numberColors = colors.size();
+                const auto numberScales = poseScales.size();
+                const auto thresholdRectangle = T(0.1);
+                const auto numberKeypoints = keypoints.getSize(1);
+				
+				
+                // Keypoints
+                for (auto person = 0 ; person < keypoints.getSize(0) ; person++)
+                {
+					if(person == personNum) {
+		                const auto personRectangle = getKeypointsRectangle(keypoints, person, thresholdRectangle);
+		                if (personRectangle.area() > 0)
+		                {
+		                    const auto ratioAreas = fastMin(T(1), fastMax(personRectangle.width/(T)width,
+		                                                                 personRectangle.height/(T)height));
+		                    // Size-dependent variables
+		                    const auto thicknessRatio = fastMax(
+		                        positiveIntRound(std::sqrt(area)* thicknessCircleRatio * ratioAreas), 2);
+		                    // Negative thickness in cv::circle means that a filled circle is to be drawn.
+		                    const auto thicknessCircle = fastMax(1, (ratioAreas > T(0.05) ? thicknessRatio : -1));
+		                    const auto thicknessLine = fastMax(
+		                        1, positiveIntRound(thicknessRatio * thicknessLineRatioWRTCircle));
+		                    const auto radius = thicknessRatio / 2;
+
+		                    // Draw lines
+		                    for (auto pair = 0u ; pair < pairs.size() ; pair+=2)
+		                    {
+		                        const auto index1 = (person * numberKeypoints + pairs[pair]) * keypoints.getSize(2);
+		                        const auto index2 = (person * numberKeypoints + pairs[pair+1]) * keypoints.getSize(2);
+		                        if (keypoints[index1+2] > threshold && keypoints[index2+2] > threshold)
+		                        {
+		                            const auto thicknessLineScaled = positiveIntRound(
+		                                thicknessLine * poseScales[pairs[pair+1] % numberScales]);
+		                            const auto colorIndex = pairs[pair+1]*3; // Before: colorIndex = pair/2*3;
+		                            const cv::Scalar color{
+		                                colors[(colorIndex+2) % numberColors],
+		                                colors[(colorIndex+1) % numberColors],
+		                                colors[colorIndex % numberColors]
+		                            };
+		                            const cv::Point keypoint1{
+		                                positiveIntRound(keypoints[index1]), positiveIntRound(keypoints[index1+1])};
+		                            const cv::Point keypoint2{
+		                                positiveIntRound(keypoints[index2]), positiveIntRound(keypoints[index2+1])};
+		                            cv::line(frameArray, keypoint1, keypoint2, color, thicknessLineScaled, lineType, shift);
+		                        }
+		                    }
+
+		                    // Draw circles
+		                    for (auto part = 0 ; part < numberKeypoints ; part++)
+		                    {
+		                        const auto faceIndex = (person * numberKeypoints + part) * keypoints.getSize(2);
+		                        if (keypoints[faceIndex+2] > threshold)
+		                        {
+		                            const auto radiusScaled = positiveIntRound(radius * poseScales[part % numberScales]);
+		                            const auto thicknessCircleScaled = positiveIntRound(
+		                                thicknessCircle * poseScales[part % numberScales]);
+		                            const auto colorIndex = part*3;
+		                            const cv::Scalar color{
+		                                colors[(colorIndex+2) % numberColors],
+		                                colors[(colorIndex+1) % numberColors],
+		                                colors[colorIndex % numberColors]
+		                            };
+		                            const cv::Point center{positiveIntRound(keypoints[faceIndex]),
+		                                                   positiveIntRound(keypoints[faceIndex+1])};
+		                            cv::circle(frameArray, center, radiusScaled, color, thicknessCircleScaled, lineType,
+		                                       shift);
+		                        }
+		                    }
+		                }
+		            }
+				}
+            }
+        }
+        catch (const std::exception& e)
+        {
+            error(e.what(), __LINE__, __FUNCTION__, __FILE__);
+        }
+    }
+    template OP_API void renderSingleKeypointsCpu(
+        cv::Mat& frameArray, const Array<float>& keypoints, const float threshold, const int personNum);
+    template OP_API void renderSingleKeypointsCpu(
+        cv::Mat& frameArray, const Array<double>& keypoints, const double threshold, const int personNum);
 }
