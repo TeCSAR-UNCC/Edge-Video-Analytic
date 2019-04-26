@@ -226,7 +226,7 @@ public:
                                 box1[2] = obj_table[j].sendObject.width;
                                 box1[3] = obj_table[j].sendObject.height;
                                 float tmpIoU = intersectionOverUnion(box1, checkBox);
-                                if (tmpIoU > 0.3f) {
+                                if (tmpIoU > 0.3f) {//try if( (tmpIoU > 0.3f && anomalyFlag ==0) || (tmpIoU > 0.1f && anomalyFlag == 1))
                                     updateFeatureFlag = 0;
                                 }
                             }
