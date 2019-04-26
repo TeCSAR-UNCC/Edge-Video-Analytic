@@ -24,7 +24,7 @@
 #define EUC_THRESH 4.25   //4.25 mobilenet 
 using namespace std;
 
-//g++ SDserver.cpp -pthread -o SDserver
+
 
 pthread_mutex_t sendLocks[NUM_NODES];
 pthread_mutex_t recvLocks[NUM_NODES];
@@ -229,9 +229,9 @@ void *listenFunc(void*) {
     cout << "UseIndex: " << useIndex << endl;
     if(useIndex > -1) {
       pthread_mutex_lock(&statusLocks[useIndex]);
-if(!clientIP[useIndex].empty()) {
-      cout << "IPb: " << clientIP[useIndex] << endl;
-}
+      if(!clientIP[useIndex].empty()) {
+            cout << "IPb: " << clientIP[useIndex] << endl;
+      }
       string str(inet_ntoa(clientAddr.sin_addr));
       clientIP[useIndex] = str;
       cout << "IPa: " << clientIP[useIndex] << endl;
@@ -276,8 +276,8 @@ int main(int argc, char const *argv[]) {
   sleep(3);
   int j = 0;
   reIDType pushData;
-	personType tmpPerson;
-	
+  personType tmpPerson;
+  unsigned int globalLabel = 1; 	
   while(1) {
     // Pop values out of recv queue
     for(int i = 0; i < NUM_NODES; ++i) {
@@ -356,7 +356,7 @@ int main(int argc, char const *argv[]) {
 					  dataBase[currentIndex].personObject.height = tmpPerson.height;
 					  dataBase[currentIndex].personObject.width = tmpPerson.width;
             dataBase[currentIndex].personObject.currentCamera = tmpPerson.currentCamera;
-					  dataBase[currentIndex].personObject.label = tmpPerson.label;
+					  dataBase[currentIndex].personObject.label = globalLabel;
 					  memcpy(&dataBase[currentIndex].personObject.fv_array, &tmpPerson.fv_array, OUTPUT_SIZE*sizeof(float));
 					  matTP.copyTo(dataBase[currentIndex].fv);
 					  pushData.oldID = tmpPerson.label;
@@ -368,6 +368,7 @@ int main(int argc, char const *argv[]) {
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[currentIndex].lru = 0;
 					  currentIndex++;
+                      globalLabel++;
 				  }
 				  else if (tmpPerson.anomalyFlag == 1) {
 					  cout << "Database is full. Initiating replacement policy..." << endl;
@@ -382,7 +383,7 @@ int main(int argc, char const *argv[]) {
 					  dataBase[useIndex].personObject.height = tmpPerson.height;
 					  dataBase[useIndex].personObject.width = tmpPerson.width;
             dataBase[useIndex].personObject.currentCamera = tmpPerson.currentCamera;
-					  dataBase[useIndex].personObject.label = tmpPerson.label;
+					  dataBase[useIndex].personObject.label = globalLabel;
 					  memcpy(&dataBase[useIndex].personObject.fv_array, &tmpPerson.fv_array, OUTPUT_SIZE*sizeof(float));
 					  matTP.copyTo(dataBase[useIndex].fv);
 					  pushData.oldID = tmpPerson.label;
@@ -393,6 +394,7 @@ int main(int argc, char const *argv[]) {
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[useIndex].lru = 0;
+                      globalLabel++;
 				  }
         }
 			}	
