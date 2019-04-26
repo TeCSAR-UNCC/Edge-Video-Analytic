@@ -209,7 +209,7 @@ public:
 
                 for (int i = 0; i < (int)detDone.size(); ++i) {
                     int eucIndex = tableDone.at(i);
-                    if (((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
+                    if (((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
                         (obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
                         int updateFeatureFlag = 1;
                         float checkBox[4];
@@ -232,16 +232,19 @@ public:
                             }
                         }
                         if (updateFeatureFlag ==1) {
-                            std::cout << "Updated: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
-                            void* ptr = &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE];
-                            std::memcpy(obj_table[eucIndex].fv.data, ptr, OUTPUT_SIZE*sizeof(float));
-                            std::memcpy(&obj_table[eucIndex].sendObject.fv_array, &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE], OUTPUT_SIZE*sizeof(float));
-                            obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointList.at(detDone.at(i));
 							auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
 							auto thresholdKeypoints = 0.5f;
 							obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,detDone.at(i), thresholdKeypoints);
-                            if ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > KEY_SEND_THRESH) || ((obj_table[eucIndex].sentToServer == 0) &&
-                                (datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH)) || (obj_table[eucIndex].sendObject.anomalyFlag==1)) {
+                            if ( ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > KEY_SEND_THRESH) && (datumsPtr->at(0)->keypointList.at(detDone.at(i)) > obj_table[eucIndex].keyCount)) ||
+								((obj_table[eucIndex].sentToServer == 0) && (datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH)) || 
+								(obj_table[eucIndex].sendObject.anomalyFlag==1)) {
+		                        
+								std::cout << "Updated: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
+		                        void* ptr = &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE];
+		                        std::memcpy(obj_table[eucIndex].fv.data, ptr, OUTPUT_SIZE*sizeof(float));
+		                        std::memcpy(&obj_table[eucIndex].sendObject.fv_array, &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE], OUTPUT_SIZE*sizeof(float));
+		                        obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointList.at(detDone.at(i));
+
                                 //put in send Q
                                 std::cout << "Sent: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
                                 obj_table[eucIndex].sendObject.currentCamera = CAMERA_ID;
