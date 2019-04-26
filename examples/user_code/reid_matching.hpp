@@ -321,6 +321,8 @@ public:
                         int colorIndex = 9;
                         if(id_labels[person][1] == 1) {
                             colorIndex = id_labels[person][0]%9;
+                			auto thresholdKeypoints = 0.1f;
+							renderSingleKeypointsCpu(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->poseKeypoints, thresholdKeypoints, person);
 		                    cv::rectangle(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->personRectangle[person],
 		                                  cv::Scalar(colors[colorIndex][2],colors[colorIndex][1],colors[colorIndex][0]),2); //Draws the bounding box around the peson of interest
 

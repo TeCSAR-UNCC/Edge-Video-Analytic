@@ -2,7 +2,7 @@
 #define __REID_CONSTANTS_HPP__
 
 #define NUM_OBJECTS 200
-#define CAMERA_ID 1
+#define CAMERA_ID 2
 #define EUC_THESH 5
 #define IOU_THRESH 0.5
 #define MULTI_MATCH_THRESH 2
