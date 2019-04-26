@@ -10,15 +10,15 @@
 class ReIDMatching : public op::WorkerConsumer<std::shared_ptr<std::vector<std::shared_ptr<ReIDBBox>>>>
 {
 private:
-    uint64_t BASE_LABEL;
-    uint64_t currentLabel;
+    int64_t BASE_LABEL;
+    int64_t currentLabel;
 public:
     ReIDMatching() {
-        BASE_LABEL = -1;
+        BASE_LABEL = -2;
         currentLabel = BASE_LABEL;
     }
 
-    ReIDMatching(uint64_t base) {
+    ReIDMatching(int64_t base) {
         BASE_LABEL = base;
         currentLabel = BASE_LABEL;
     }

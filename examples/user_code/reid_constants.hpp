@@ -21,6 +21,6 @@ static const int INPUT_W = 128;
 static const int INPUT_CH = 3;
 static const int INPUT_BS = 16;
 static const int OUTPUT_SIZE = 1280;
-static const uint64_t MAX_ID_OFFSET = 1000000;
+static const int64_t MAX_ID_OFFSET = 1000000;
 
 #endif //__REID_CONSTANTS_HPP__
