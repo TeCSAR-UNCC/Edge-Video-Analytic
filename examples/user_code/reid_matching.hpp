@@ -14,7 +14,7 @@ private:
     uint64_t currentLabel;
 public:
     ReIDMatching() {
-        BASE_LABEL = 1000000;
+        BASE_LABEL = -1;
         currentLabel = BASE_LABEL;
     }
 
@@ -278,16 +278,16 @@ public:
                         obj_table[eucIndex].sentToServer = 0;
                         obj_table[eucIndex].life = LIFE;
                         obj_table[eucIndex].reIDFlag = 0;
-                        if(currentLabel == BASE_LABEL+MAX_ID_OFFSET){
+                        if(currentLabel == BASE_LABEL-MAX_ID_OFFSET){
                             currentLabel = BASE_LABEL;
                         }
                         obj_table[eucIndex].sendObject.label = currentLabel;
-                        id_labels[newDetect.at(i)][0] = currentLabel;
-                        id_labels[newDetect.at(i)][1] = 0;
-                        currentLabel++;
+                        //id_labels[newDetect.at(i)][0] = currentLabel;
+                        //id_labels[newDetect.at(i)][1] = 0;
+                        currentLabel--;
                     } else {
-                        id_labels[newDetect.at(i)][0] = -1;
-                        id_labels[newDetect.at(i)][1] = 0;
+                        //id_labels[newDetect.at(i)][0] = -1;
+                        //id_labels[newDetect.at(i)][1] = 0;
                         break;
                     }
                 }
@@ -310,15 +310,17 @@ public:
                     if ((datumsPtr->at(0)->personRectangle[person].width > 0) && (datumsPtr->at(0)->personRectangle[person].height > 0) &&
                         (datumsPtr->at(0)->personRectangle[person].x < datumsPtr->at(0)->cvOutputData.cols) &&
                         (datumsPtr->at(0)->personRectangle[person].y < datumsPtr->at(0)->cvOutputData.rows)) {
-                        std::string tmpStringLabel = std::to_string(id_labels[person][0]);
-                        std::string camera(1, tmpStringLabel.at(0));
-                        int labelInt = std::stoi(tmpStringLabel.substr(1));
-                        std::string label = std::to_string(labelInt);
-                        std::string finalLabel = "P" + label + "-" + camera;
+                        //std::string tmpStringLabel = std::to_string(id_labels[person][0]);
+                        //std::string camera(1, tmpStringLabel.at(0));
+                        //int labelInt = std::stoi(tmpStringLabel.substr(1));
+                        //std::string label = std::to_string(labelInt);
+                        //std::string finalLabel = "P" + label + "-" + camera;
+						std::string label = std::to_string(id_labels[person][0]);
+						std::string finalLabel = "P" + label;
 
                         int colorIndex = 9;
                         if(id_labels[person][1] == 1) {
-                            colorIndex = labelInt%9;
+                            colorIndex = id_labels[person][0]%9;
 		                    cv::rectangle(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->personRectangle[person],
 		                                  cv::Scalar(colors[colorIndex][2],colors[colorIndex][1],colors[colorIndex][0]),2); //Draws the bounding box around the peson of interest
 
