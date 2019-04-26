@@ -65,7 +65,8 @@ int generateBoundingBoxes()
         /********************************************************/
 	    // Initializing the user custom classes
         // Processing
-        auto reidmatch = std::make_shared<ReIDMatching>(op::flagsToNodeID(FLAGS_node_id));
+        //auto reidmatch = std::make_shared<ReIDMatching>(op::flagsToNodeID(FLAGS_node_id));
+		auto reidmatch = std::make_shared<ReIDMatching>();
         // Add custom processing
         opWrapperT.setWorker(op::WorkerType::Output, reidmatch, workerProcessingOnNewThread);
 
