@@ -209,7 +209,7 @@ public:
 
                 for (int i = 0; i < (int)detDone.size(); ++i) {
                     int eucIndex = tableDone.at(i);
-                    if (((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
+                    if (((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
                         (obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
                         int updateFeatureFlag = 1;
                         float checkBox[4];
@@ -233,17 +233,17 @@ public:
                         }
                         if (updateFeatureFlag ==1) {
 							auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-							auto thresholdKeypoints = 0.5f;
-							obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,detDone.at(i), thresholdKeypoints);
-                            if ( ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > KEY_SEND_THRESH) && (datumsPtr->at(0)->keypointList.at(detDone.at(i)) > obj_table[eucIndex].keyCount)) ||
-								((obj_table[eucIndex].sentToServer == 0) && (datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH)) || 
+							auto thresholdKeypoints = 0.1f;
+							obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,datumsPtr->at(0)->keypointIndex.at(detDone.at(i)), thresholdKeypoints);
+                            if ( ((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) > KEY_SEND_THRESH) && (datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) > obj_table[eucIndex].keyCount)) ||
+								((obj_table[eucIndex].sentToServer == 0) && (datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= KEY_SEND_THRESH)) || 
 								(obj_table[eucIndex].sendObject.anomalyFlag==1)) {
 		                        
 								std::cout << "Updated: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
 		                        void* ptr = &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE];
 		                        std::memcpy(obj_table[eucIndex].fv.data, ptr, OUTPUT_SIZE*sizeof(float));
 		                        std::memcpy(&obj_table[eucIndex].sendObject.fv_array, &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE], OUTPUT_SIZE*sizeof(float));
-		                        obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointList.at(detDone.at(i));
+		                        obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i));
 
                                 //put in send Q
                                 std::cout << "Sent: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
@@ -269,7 +269,7 @@ public:
                         void* ptr = &featureVectors[stepOutput][newDetect.at(i)*OUTPUT_SIZE];
                         std::memcpy(obj_table[eucIndex].fv.data, ptr, OUTPUT_SIZE*sizeof(float));
                         std::memcpy(&obj_table[eucIndex].sendObject.fv_array, &featureVectors[stepOutput][newDetect.at(i)*OUTPUT_SIZE], OUTPUT_SIZE*sizeof(float));
-                        obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointList.at(newDetect.at(i));
+                        obj_table[eucIndex].keyCount = datumsPtr->at(0)->keypointNumPerPerson.at(newDetect.at(i));
                         obj_table[eucIndex].sendObject.xPos = bboxes[stepBoxOutput][newDetect.at(i)][0];
                         obj_table[eucIndex].sendObject.yPos = bboxes[stepBoxOutput][newDetect.at(i)][1];
                         obj_table[eucIndex].sendObject.width = bboxes[stepBoxOutput][newDetect.at(i)][2];
@@ -282,12 +282,12 @@ public:
                             currentLabel = BASE_LABEL;
                         }
                         obj_table[eucIndex].sendObject.label = currentLabel;
-                        //id_labels[newDetect.at(i)][0] = currentLabel;
-                        //id_labels[newDetect.at(i)][1] = 0;
+                        id_labels[newDetect.at(i)][0] = currentLabel;
+                        id_labels[newDetect.at(i)][1] = 0;
                         currentLabel--;
                     } else {
-                        //id_labels[newDetect.at(i)][0] = -1;
-                        //id_labels[newDetect.at(i)][1] = 0;
+                        id_labels[newDetect.at(i)][0] = -1;
+                        id_labels[newDetect.at(i)][1] = 0;
                         break;
                     }
                 }
@@ -320,9 +320,11 @@ public:
 
                         int colorIndex = 9;
                         if(id_labels[person][1] == 1) {
+ 							auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+							//std::cout << poseKeypoints.toString();
                             colorIndex = id_labels[person][0]%9;
                 			auto thresholdKeypoints = 0.1f;
-							renderSingleKeypointsCpu(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->poseKeypoints, thresholdKeypoints, person);
+							renderSingleKeypointsCpu(datumsPtr->at(0)->cvOutputData, poseKeypoints, thresholdKeypoints, datumsPtr->at(0)->keypointIndex.at(person));
 		                    cv::rectangle(datumsPtr->at(0)->cvOutputData, datumsPtr->at(0)->personRectangle[person],
 		                                  cv::Scalar(colors[colorIndex][2],colors[colorIndex][1],colors[colorIndex][0]),2); //Draws the bounding box around the peson of interest
 

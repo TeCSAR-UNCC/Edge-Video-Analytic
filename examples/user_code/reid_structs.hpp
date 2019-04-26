@@ -34,9 +34,10 @@ struct ReIDBBox : public op::Datum
 {
 	std::vector<cv::Rect> personRectangle;
 	std::vector<array<float,4>> personRectangleFloats;
-	std::vector<int> keypointList;
+	std::vector<int> keypointNumPerPerson;
 	std::vector<cv::Mat> roi;
 	std::vector<cv::Mat> mobileFv;
+	std::vector<int> keypointIndex;
 };
 
 #endif //__REID_STRUCTS_HPP__

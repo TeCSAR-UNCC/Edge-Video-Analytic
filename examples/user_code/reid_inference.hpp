@@ -87,7 +87,7 @@ class ReIDInference : public op::Worker<std::shared_ptr<std::vector<std::shared_
                         auto rectBuffer = op::getKeypointsRectangle(poseKeypoints,person, thresholdRectangle); //Gets the rectangle information from the keypoints
                         array<float,4> arrayBuffer = {rectBuffer.x, rectBuffer.y, rectBuffer.width, rectBuffer.height};
                         datumsPtr->at(0)->personRectangleFloats.push_back(arrayBuffer);
-                        datumsPtr->at(0)->keypointList.push_back(keypointCount);
+                        datumsPtr->at(0)->keypointNumPerPerson.push_back(keypointCount);
                         cv::Rect rec(rectBuffer.x,rectBuffer.y,rectBuffer.width,rectBuffer.height); //Converts from openpose rectangle to opencv rectangle
 
                         bboxes[stepBoxPost][person][0] = rectBuffer.x;
@@ -114,6 +114,7 @@ class ReIDInference : public op::Worker<std::shared_ptr<std::vector<std::shared_
                                 cv::resize(img, img, cv::Size(128, 256));
                                 inputCrops.push_back(img);
                             }
+							datumsPtr->at(0)->keypointIndex.push_back(person);
                         }
                     }
                 }
