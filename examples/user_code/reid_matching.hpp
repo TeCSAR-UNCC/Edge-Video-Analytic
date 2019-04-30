@@ -211,6 +211,9 @@ public:
                     int eucIndex = tableDone.at(i);
                     if (((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
                         (obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
+						auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+						auto thresholdKeypoints = 0.1f;
+						obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,datumsPtr->at(0)->keypointIndex.at(detDone.at(i)), thresholdKeypoints);
                         int updateFeatureFlag = 1;
                         float checkBox[4];
                         checkBox[0] = obj_table[detDone.at(i)].sendObject.xPos;
@@ -226,15 +229,12 @@ public:
                                 box1[2] = obj_table[j].sendObject.width;
                                 box1[3] = obj_table[j].sendObject.height;
                                 float tmpIoU = intersectionOverUnion(box1, checkBox);
-                                if (tmpIoU > 0.3f) {//try if( (tmpIoU > 0.3f && anomalyFlag ==0) || (tmpIoU > 0.1f && anomalyFlag == 1))
+                                if( (tmpIoU > 0.3f && obj_table[eucIndex].sendObject.anomalyFlag==0) || (tmpIoU > 0.6f && obj_table[eucIndex].sendObject.anomalyFlag==1)) {//before if(tmpIoU > 0.3f)
                                     updateFeatureFlag = 0;
                                 }
                             }
                         }
                         if (updateFeatureFlag ==1) {
-							auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-							auto thresholdKeypoints = 0.1f;
-							obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,datumsPtr->at(0)->keypointIndex.at(detDone.at(i)), thresholdKeypoints);
                             if ( ((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) > KEY_SEND_THRESH) && (datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) > obj_table[eucIndex].keyCount)) ||
 								((obj_table[eucIndex].sentToServer == 0) && (datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= KEY_SEND_THRESH)) || 
 								(obj_table[eucIndex].sendObject.anomalyFlag==1)) {
