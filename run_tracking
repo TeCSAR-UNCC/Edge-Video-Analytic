@@ -1,0 +1,6 @@
+#!/bin/bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nvidia/openpose/3rdparty/caffe/distribute/lib/
+./build/examples/user_code/tracking2.bin -net_resolution -1x480 -render_pose 0 -model_pose BODY_25 -use_dla -1 
+#./build/examples/openpose/openpose.bin -camera_resolution 640x480 -net_resolution 128x96 -render_pose 1 -model_pose BODY_25
+#-1x160
+#./build/examples/user_code/op_bounding_boxes_SD_old.bin -camera_resolution 640x480 -render_pose 0 -model_pose BODY_25
