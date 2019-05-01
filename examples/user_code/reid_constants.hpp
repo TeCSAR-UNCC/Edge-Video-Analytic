@@ -12,6 +12,7 @@
 #define PINGPONG_SIZE 1
 #define BOX_PINGPONG_SIZE 1
 #define KEY_SEND_THRESH 20
+
 //e0.4 i0.6
 //#define LIFE 30
 #define LIFE 10

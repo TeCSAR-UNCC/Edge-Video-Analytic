@@ -209,11 +209,14 @@ public:
 
                 for (int i = 0; i < (int)detDone.size(); ++i) {
                     int eucIndex = tableDone.at(i);
+					auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+					auto thresholdKeypoints = 0.3f;
+					obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,datumsPtr->at(0)->keypointIndex.at(detDone.at(i)), thresholdKeypoints);
+					std::cout << "Anomaly Flag: " << obj_table[eucIndex].sendObject.anomalyFlag << std::endl;
+					cout << "Pre if for done detections\n";
                     if (((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointNumPerPerson.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
-                        (obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
-						auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-						auto thresholdKeypoints = 0.1f;
-						obj_table[eucIndex].sendObject.anomalyFlag = anomalySend(poseKeypoints,datumsPtr->at(0)->keypointIndex.at(detDone.at(i)), thresholdKeypoints);
+                        (obj_table[eucIndex].sendObject.anomalyFlag==1 || obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
+
                         int updateFeatureFlag = 1;
                         float checkBox[4];
                         checkBox[0] = obj_table[detDone.at(i)].sendObject.xPos;
