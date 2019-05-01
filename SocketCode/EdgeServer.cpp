@@ -21,7 +21,7 @@
 #define NUM_NODES 2
 #define SIZEOFDB 1000
 #define OUTPUT_SIZE 1280
-#define EUC_THRESH 4.25   //4.25 mobilenet 
+#define EUC_THRESH 4.1   //4.25 mobilenet 
 using namespace std;
 
 
@@ -98,8 +98,8 @@ void *sendData(void* index) {
 
 	    inet_pton(AF_INET, IPADDR, &(servaddr.sin_addr));
 
-	    connect(sock,(struct sockaddr *)&servaddr,sizeof(servaddr)); 
-
+	    int conStatus = connect(sock,(struct sockaddr *)&servaddr,sizeof(servaddr)); 
+cout << "Send Connection Made: " << conStatus << endl;
       reIDType data;
       /* While the connection is still valid*/
       while(status > 0) {
@@ -110,12 +110,13 @@ void *sendData(void* index) {
           sQList[statIndex].pop();
           pthread_mutex_unlock(&sendLocks[statIndex]);
           int retCode = send(sock, &data, sizeof(reIDType), 0);
+cout << "Send finished\n";
           //std::cout << "retCode: " << retCode << std::endl;
           /* Check status to make sure connection is still valid*/
-          pthread_mutex_lock(&statusLocks[statIndex]);
-          status = nodeStatus[statIndex];
-          pthread_mutex_unlock(&statusLocks[statIndex]);
         }
+        pthread_mutex_lock(&statusLocks[statIndex]);
+        status = nodeStatus[statIndex];
+        pthread_mutex_unlock(&statusLocks[statIndex]);
         pthread_mutex_unlock(&sendLocks[statIndex]);
       }
       close(sock);
@@ -307,6 +308,7 @@ int main(int argc, char const *argv[]) {
 
             if(tmpPerson.currentCamera > -1) { //if not an unlock recv
 						  tmpEucDist = cv::norm(dataBase[j].fv, matTP, cv::NORM_L2);
+						  cout << "EucDist: " << tmpEucDist << endl;
               if( (dataBase[j].personObject.label == tmpPerson.label) && (dataBase[j].personObject.currentCamera == tmpPerson.currentCamera) ) {
 							  updateFlag = true;
 							  matchIndex = j;
@@ -346,7 +348,9 @@ int main(int argc, char const *argv[]) {
 					  //pushData.newCameraID = dataBase[matchIndex].personObject.cameraID;
 					  cout << "pushData.newID = " << pushData.newID << " and tmpPerson.label = " << tmpPerson.label << " and dataBase[matchIndex].personObject.label = " << dataBase[matchIndex].personObject.label << endl;
 					  pthread_mutex_lock(&sendLocks[i]);
+cout << "Past Send Lock Update\n";
 					  sQList[i].push(pushData);
+cout << "Past Send Push Update\n";
 					  pthread_mutex_unlock(&sendLocks[i]);
 				  }
 				  else if ((currentIndex < SIZEOFDB) && (tmpPerson.anomalyFlag == 1)){
@@ -364,6 +368,7 @@ int main(int argc, char const *argv[]) {
 					  //pushData.newCameraID = dataBase[matchIndex].personObject.cameraID;
 					  cout << "pushData.newID = " << pushData.newID << " and tmpPerson.label = " << tmpPerson.label << " and dataBase[matchIndex].personObject.label = " << dataBase[currentIndex].personObject.label << endl;
 					  pthread_mutex_lock(&sendLocks[i]);
+cout << "Past Send Lock New Person\n";
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[currentIndex].lru = 0;
@@ -391,6 +396,7 @@ int main(int argc, char const *argv[]) {
 					  //pushData.newCameraID = dataBase[matchIndex].personObject.cameraID;
 					  cout << "pushData.newID = " << pushData.newID << " and tmpPerson.label = " << tmpPerson.label << " and dataBase[matchIndex].personObject.label = " << dataBase[useIndex].personObject.label << endl;
 					  pthread_mutex_lock(&sendLocks[i]);
+cout << "Past Send Lock LRU\n";
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[useIndex].lru = 0;
