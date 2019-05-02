@@ -1,21 +1,31 @@
 classdef EdgeNode
     properties
-        id
-        detections
-        reid_feats
-        currFrame
-        startFrame
-        endFrame
-        sourceFrameRate
-        frameRate
-        currID
+        % Data structures
+        detections % Detection trace for node
+        reid_feats % Feature map trace for node
+        obj_table % Local ReID table
         
-        kp_conf_thresh
-        kp_count_thresh
+        % Edge node intrinsic parameters
+        id % Node ID number
+        currFrame % Current frame number
+        startFrame % Starting frame for testing
+        endFrame % Ending frame for testing
+        sourceFrameRate % Frame rate of original capture
+        frameRate % Operational frame rate of edge node
+        currID % Label number for next new detection
         
-        obj_table
-        tab_size
-        tab_life
+        % Keypoint validation params
+        kp_conf_thresh % Minimum confidence for valid keypoints
+        kp_count_thresh % Minimum number of valid keypoints to generate a bounding box
+        
+        % Table match params
+        iou_weight % Weight of IoU in matching decision
+        l2_weight % Weight of l2norm in matching decision
+        match_threshold % Maximum score for positive match
+        
+        % Table params
+        tab_size % Size of the local ReID table
+        tab_life % Number of frames an ID is valid in ReID table
     end
     methods
         function obj = EdgeNode(params)
@@ -28,9 +38,14 @@ classdef EdgeNode
                 obj.endFrame = params.endFrame;
                 obj.currFrame = params.startFrame;
                 obj.frameRate = params.outFrameRate;
+                obj.currID = obj.id * 1000000;
+                
                 obj.kp_conf_thresh = params.kpcth;
                 obj.kp_count_thresh = params.kpcnt;
-                obj.currID = obj.id * 1000000;
+                
+                obj.iou_weight = 0.15;
+                obj.l2_weight = 0.85;
+                obj.match_threshold = 0.6;
 
                 pt = personType(0,0,zeros(1,1280),0,0,0,0);
                 oh = object_history(0,pt,0,0,0);
@@ -53,40 +68,41 @@ classdef EdgeNode
                     obj.obj_table(i).life = obj.obj_table(i).life - 1;
                     if ((obj.obj_table(i).life==0) && (obj.obj_table(i).sentToServer==1))
                         obj.obj_table(i).sendObject.currentCamera = -1;
-                        % Send to server to be implemented in the future
+                        % Send expired labels to server if previously sent
                     end
                 end
             end
-            % Server ReID Receive code to be implemented in the future
+            % Check rcvQ for updates from server
 
             % Local ReID
             dets = ones(size(keypoints,1),1);
-            valid_dets = find(dets);
-            valid_tabs = find(table_idxs);
-            while (~isempty(valid_tabs) && ~isempty(valid_dets))
+            valid_dets = find(dets, 1);
+            valid_tabs = find(table_idxs, 1);
+            if (~isempty(valid_tabs) && ~isempty(valid_dets))
                 match_table = Inf(size(keypoints,1),obj.tab_size);
                 valid_tabs = find(table_idxs);
                 valid_dets = find(dets);
                 for tab = 1:length(valid_tabs)
                     for det = 1:length(valid_dets)
                         match_table(valid_dets(det),valid_tabs(tab)) = ...
-                            0.85*norm(obj.obj_table(valid_tabs(tab)).sendObject.fv_array - ...
+                            obj.l2_weight*norm(obj.obj_table(valid_tabs(tab)).sendObject.fv_array - ...
                                  features(valid_dets(det),:));
                         tab_person = obj.obj_table(valid_tabs(tab)).sendObject;
                         tab_bbox = [tab_person.xPos,tab_person.yPos,tab_person.width,tab_person.height];
                         match_table(valid_dets(det),valid_tabs(tab)) = ...
                             match_table(valid_dets(det),valid_tabs(tab)) + ...
-                            0.15*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
+                            obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
                     end
                 end
                 best_match = min(match_table,[],'all');
-                if (best_match < 0.6)
+                while (best_match < obj.match_threshold)
                     [det, tab] = find(match_table==best_match);
                     det = det(1);
                     tab = tab(1);
                     dets(det) = 0;
                     table_idxs(tab) = 0;
-                    match_table(det,tab) = Inf;
+                    match_table(:,tab) = Inf;
+                    match_table(det,:) = Inf;
                     if (validKPCounts(det) > obj.obj_table(tab).keyCount)
                         so = obj.obj_table(tab).sendObject;
                         so.fv_array = features(det);
@@ -98,8 +114,7 @@ classdef EdgeNode
                         obj.obj_table(tab).life = obj.tab_life;
                         obj.obj_table(tab).keyCount = validKPCounts(det);
                     end
-                else
-                    valid_tabs = [];
+                    best_match = min(match_table,[],'all');
                 end
             end
             valid_dets = find(dets);
@@ -125,6 +140,8 @@ classdef EdgeNode
                                                       0, 0);
                 end
             end
+            % Send new qualifying detections to the server
+            
             obj.currFrame =  obj.currFrame + ceil(obj.sourceFrameRate/obj.frameRate);
         end
         function r = ready(obj, frame)
