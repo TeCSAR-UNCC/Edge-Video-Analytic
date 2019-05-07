@@ -4,6 +4,8 @@ classdef EdgeNode
         detections % Detection trace for node
         reid_feats % Feature map trace for node
         obj_table % Local ReID table
+        rcvQ % Receive queue from server
+        sendQ % Send queue to server
         
         % Edge node intrinsic parameters
         id % Node ID number
@@ -17,6 +19,7 @@ classdef EdgeNode
         % Keypoint validation params
         kp_conf_thresh % Minimum confidence for valid keypoints
         kp_count_thresh % Minimum number of valid keypoints to generate a bounding box
+        srv_kp_thresh
         
         % Table match params
         iou_weight % Weight of IoU in matching decision
@@ -26,6 +29,7 @@ classdef EdgeNode
         % Table params
         tab_size % Size of the local ReID table
         tab_life % Number of frames an ID is valid in ReID table
+        max_tab_idx
     end
     methods
         function obj = EdgeNode(params)
@@ -45,18 +49,25 @@ classdef EdgeNode
                 
                 obj.iou_weight = 0.15;
                 obj.l2_weight = 0.85;
-                obj.match_threshold = 0.6;
+                obj.match_threshold = 0.8;
 
+                obj.rcvQ = [];
+                obj.sendQ = [];
+                
                 pt = personType(0,0,zeros(1,1280),0,0,0,0);
                 oh = object_history(0,pt,0,0,0);
                 obj.obj_table = repmat(oh,params.tab_size,1);
                 obj.tab_size = params.tab_size;
                 obj.tab_life = params.tabLife;
+                obj.max_tab_idx = 1;
+                
+                obj.srv_kp_thresh = 20;
             else
                 error('Expecting 1 argument of type camera_params');
             end
         end
         function obj = process_step(obj)
+            obj.sendQ = [];
             [keypoints, validKPCounts, features, bboxes] = reid_inference(obj);
             currFrme = obj.currFrame;
             % Update table life vals. Send expired entries to server if previously
@@ -69,29 +80,46 @@ classdef EdgeNode
                     if ((obj.obj_table(i).life==0) && (obj.obj_table(i).sentToServer==1))
                         obj.obj_table(i).sendObject.currentCamera = -1;
                         % Send expired labels to server if previously sent
+                        obj.sendQ = [obj.sendQ; obj.obj_table(i).sendObject];
                     end
                 end
             end
             % Check rcvQ for updates from server
-
+            if (~isempty(obj.rcvQ))
+                for q = 1:length(obj.rcvQ)
+                    oldID = obj.rcvQ(q).oldID;
+                    newID = obj.rcvQ(q).newID;
+                    
+                    for i = 1:length(table_idxs)
+                        if (obj.obj_table(i).sendObject.label == oldID)
+                            obj.obj_table(i).sendObject.label = newID;
+                            obj.obj_table(i).reIDFlag = 1;
+                            break;
+                        end
+                    end
+                end
+            end
+            obj.rcvQ = [];
+            
             % Local ReID
             dets = ones(size(keypoints,1),1);
             valid_dets = find(dets, 1);
             valid_tabs = find(table_idxs, 1);
             if (~isempty(valid_tabs) && ~isempty(valid_dets))
-                match_table = Inf(size(keypoints,1),obj.tab_size);
+                match_table = Inf(size(keypoints,1),obj.max_tab_idx);
                 valid_tabs = find(table_idxs);
                 valid_dets = find(dets);
                 for tab = 1:length(valid_tabs)
                     for det = 1:length(valid_dets)
-                        match_table(valid_dets(det),valid_tabs(tab)) = ...
+                        match = ...
                             obj.l2_weight*norm(obj.obj_table(valid_tabs(tab)).sendObject.fv_array - ...
                                  features(valid_dets(det),:));
                         tab_person = obj.obj_table(valid_tabs(tab)).sendObject;
                         tab_bbox = [tab_person.xPos,tab_person.yPos,tab_person.width,tab_person.height];
-                        match_table(valid_dets(det),valid_tabs(tab)) = ...
-                            match_table(valid_dets(det),valid_tabs(tab)) + ...
-                            obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
+                        match = match + obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
+                        if (match < obj.match_threshold)
+                            match_table(valid_dets(det),valid_tabs(tab)) = match;
+                        end
                     end
                 end
                 best_match = min(match_table,[],'all');
@@ -113,6 +141,10 @@ classdef EdgeNode
                         obj.obj_table(tab).sendObject = so;
                         obj.obj_table(tab).life = obj.tab_life;
                         obj.obj_table(tab).keyCount = validKPCounts(det);
+                        if (validKPCounts(det) > obj.srv_kp_thresh)
+                            obj.sendQ = [obj.sendQ; so];
+                            obj.obj_table(tab).sentToServer = 1;
+                        end
                     end
                     best_match = min(match_table,[],'all');
                 end
@@ -138,9 +170,15 @@ classdef EdgeNode
                                                       sendObject, ...
                                                       validKPCounts(dets(valid_dets(i))), ...
                                                       0, 0);
+                    if (validKPCounts(dets(valid_dets(i))) > obj.srv_kp_thresh)
+                        obj.sendQ = [obj.sendQ; sendObject];
+                        obj.obj_table(firstOpenTab).sentToServer = 1;
+                    end
+                    if (firstOpenTab > obj.max_tab_idx)
+                        obj.max_tab_idx = firstOpenTab;
+                    end
                 end
             end
-            % Send new qualifying detections to the server
             
             obj.currFrame =  obj.currFrame + ceil(obj.sourceFrameRate/obj.frameRate);
         end
@@ -157,25 +195,18 @@ classdef EdgeNode
             oh = object_history(0,pt,0,0,0);
             obj.obj_table = repmat(oh,obj.tab_size,1);
             obj.currID = obj.id*1000000;
+            obj.max_tab_idx = 1;
+        end
+        function obj = fillRcvQ(obj, queue)
+            obj.rcvQ = queue;
+        end
+        function r = getSendQ(obj)
+            r = obj.sendQ;
+        end
+        function r = getID(obj)
+            r = obj.id;
         end
     end
-end
-
-function r = personType(currentCamera,label,fv_array,xPos,yPos,width,height)
-% PERSONTYPE Generates a personType struct
-%   Inputs:
-%       currentCamera - Camera ID
-%       label - Detection ID label
-%       fv_array - Encoded feature vector of the ID
-%       xPos - X position of the target
-%       yPos - Y position of the target
-%       height - Height of the target
-%       width - Width of the target
-%   Output:
-%       r - personType struct
-    r = struct('currentCamera',int32(currentCamera),'label',int32(label), ...
-               'fv_array',single(fv_array),'xPos',single(xPos),'yPos', ...
-               single(yPos),'height',single(height),'width',single(width));
 end
 
 function r = object_history(life,sendObject,keyCount,reIDFlag,sentToServer)
@@ -190,6 +221,13 @@ function r = object_history(life,sendObject,keyCount,reIDFlag,sentToServer)
 %           server for reid
 %   Output:
 %       r - object_history struct
+    if nargin ~= 5
+        life = 0;
+        sendObject = personType();
+        keyCount = 0;
+        reIDFlag = 0;
+        sentToServer = 0;
+    end
     r = struct('life',int32(life),'sendObject',sendObject, ...
                'keyCount',int32(keyCount),'reIDFlag',int32(reIDFlag), ...
                'sentToServer',int32(sentToServer));
