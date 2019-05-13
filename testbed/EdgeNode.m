@@ -10,8 +10,8 @@ classdef EdgeNode
         % Edge node intrinsic parameters
         id % Node ID number
         currFrame % Current frame number
-        startFrame % Starting frame for testing
-        endFrame % Ending frame for testing
+        frames % Frames on which the edge node will operate
+        currFrameIdx % Index of current frame in frames array
         sourceFrameRate % Frame rate of original capture
         frameRate % Operational frame rate of edge node
         currID % Label number for next new detection
@@ -30,6 +30,12 @@ classdef EdgeNode
         tab_size % Size of the local ReID table
         tab_life % Number of frames an ID is valid in ReID table
         max_tab_idx
+        
+        % Validation params
+        gt % Ground truth data for edge node
+        num_ids % Number of unique IDs in the ground truth
+        val_table % ID validation table
+        gt_idx
     end
     methods
         function obj = EdgeNode(params)
@@ -38,9 +44,9 @@ classdef EdgeNode
                 obj.detections = params.dets;
                 obj.reid_feats = params.feats;
                 obj.sourceFrameRate = params.sourceFrameRate;
-                obj.startFrame = params.startFrame;
-                obj.endFrame = params.endFrame;
-                obj.currFrame = params.startFrame;
+                obj.frames = params.frames;
+                obj.currFrameIdx = 1;
+                obj.currFrame = obj.frames(obj.currFrameIdx);
                 obj.frameRate = params.outFrameRate;
                 obj.currID = obj.id * 1000000;
                 
@@ -62,6 +68,13 @@ classdef EdgeNode
                 obj.max_tab_idx = 1;
                 
                 obj.srv_kp_thresh = 20;
+                
+                obj.gt = params.gt;
+                obj.num_ids = params.num_ids;
+                if obj.num_ids > 0
+                    obj.val_table = zeros(obj.num_ids,length(obj.frames),'int32');
+                end
+                obj.gt_idx = 1;
             else
                 error('Expecting 1 argument of type camera_params');
             end
@@ -69,7 +82,7 @@ classdef EdgeNode
         function obj = process_step(obj)
             obj.sendQ = [];
             [keypoints, validKPCounts, features, bboxes] = reid_inference(obj);
-            currFrme = obj.currFrame;
+
             % Update table life vals. Send expired entries to server if previously
             %   sent to server.
             table_idxs = zeros(size(obj.obj_table,1),1);
@@ -89,7 +102,12 @@ classdef EdgeNode
                 for q = 1:length(obj.rcvQ)
                     oldID = obj.rcvQ(q).oldID;
                     newID = obj.rcvQ(q).newID;
-                    
+                    if obj.num_ids > 0
+                        val_idx = find(obj.val_table(:,obj.currFrameIdx-1)==oldID);
+                        if ~isempty(val_idx)
+                            obj.val_table(val_idx(1),obj.currFrameIdx-1) = newID;
+                        end
+                    end
                     for i = 1:length(table_idxs)
                         if (obj.obj_table(i).sendObject.label == oldID)
                             obj.obj_table(i).sendObject.label = newID;
@@ -102,6 +120,8 @@ classdef EdgeNode
             obj.rcvQ = [];
             
             % Local ReID
+            labeled_dets = [];
+
             dets = ones(size(keypoints,1),1);
             valid_dets = find(dets, 1);
             valid_tabs = find(table_idxs, 1);
@@ -131,30 +151,35 @@ classdef EdgeNode
                     table_idxs(tab) = 0;
                     match_table(:,tab) = Inf;
                     match_table(det,:) = Inf;
+                    so = obj.obj_table(tab).sendObject;
+                    so.xPos = bboxes(det,1);
+                    so.yPos = bboxes(det,2);
+                    so.width = bboxes(det,3);
+                    so.height = bboxes(det,4);
                     if (validKPCounts(det) > obj.obj_table(tab).keyCount)
-                        so = obj.obj_table(tab).sendObject;
                         so.fv_array = features(det);
-                        so.xPos = bboxes(det,1);
-                        so.yPos = bboxes(det,2);
-                        so.width = bboxes(det,3);
-                        so.height = bboxes(det,4);
-                        obj.obj_table(tab).sendObject = so;
-                        obj.obj_table(tab).life = obj.tab_life;
                         obj.obj_table(tab).keyCount = validKPCounts(det);
                         if (validKPCounts(det) > obj.srv_kp_thresh)
                             obj.sendQ = [obj.sendQ; so];
                             obj.obj_table(tab).sentToServer = 1;
                         end
                     end
+                    obj.obj_table(tab).sendObject = so;
+                    obj.obj_table(tab).life = obj.tab_life;
+                    
+                    labeled_dets = [labeled_dets; [double(so.label), so.xPos, so.yPos, so.width, so.height]];
+                    
                     best_match = min(match_table,[],'all');
                 end
             end
             valid_dets = find(dets);
             if ~isempty(valid_dets)
                 for i = 1:length(valid_dets)
-                    sendObject = personType(obj.id,obj.currID,features(dets(valid_dets(i)),:), ...
-                                            bboxes(dets(valid_dets(i)),1),bboxes(dets(valid_dets(i)),2), ...
-                                            bboxes(dets(valid_dets(i)),3),bboxes(dets(valid_dets(i)),4));
+                    sendObject = personType(obj.id,obj.currID,features(valid_dets(i),:), ...
+                                            bboxes(valid_dets(i),1),bboxes(valid_dets(i),2), ...
+                                            bboxes(valid_dets(i),3),bboxes(valid_dets(i),4));
+                    so = sendObject;
+                    labeled_dets = [labeled_dets; [double(so.label), so.xPos, so.yPos, so.width, so.height]];
                     obj.currID = obj.currID + 1;
                     if (obj.currID == (obj.id+1)*1000000)
                         obj.currID = obj.id*1000000;
@@ -180,7 +205,22 @@ classdef EdgeNode
                 end
             end
             
-            obj.currFrame =  obj.currFrame + ceil(obj.sourceFrameRate/obj.frameRate);
+            if obj.num_ids > 0
+                frame_gt = [];
+                while (obj.gt_idx<=size(obj.gt,1)) && (obj.gt(obj.gt_idx,2)==obj.currFrame)
+                    frame_gt = [frame_gt; obj.gt(obj.gt_idx,:)];
+                    obj.gt_idx = obj.gt_idx + 1;
+                end
+                if ~isempty(frame_gt)
+                    obj.val_table(:,obj.currFrameIdx) = ...
+                        gt_matching(obj.val_table(:,obj.currFrameIdx), frame_gt, labeled_dets, obj.currFrame);
+                end
+            end
+            
+            obj.currFrameIdx =  obj.currFrameIdx + 1;
+            if obj.currFrameIdx <= length(obj.frames)
+                obj.currFrame = obj.frames(obj.currFrameIdx);
+            end
         end
         function r = ready(obj, frame)
             if (frame == obj.currFrame)
@@ -190,12 +230,18 @@ classdef EdgeNode
             end
         end
         function obj = resetNode(obj)
-            obj.currFrame = obj.startFrame;
+            obj.currFrameIdx = 1;
+            obj.currFrame = obj.frames(obj.currFrameIdx);
             pt = personType(0,0,zeros(1,1280),0,0,0,0);
             oh = object_history(0,pt,0,0,0);
             obj.obj_table = repmat(oh,obj.tab_size,1);
             obj.currID = obj.id*1000000;
             obj.max_tab_idx = 1;
+            obj.rcvQ = [];
+            if obj.num_ids > 0
+                obj.val_table = zeros(obj.num_ids,length(obj.frames),'int32');
+            end
+            obj.gt_idx = 1;
         end
         function obj = fillRcvQ(obj, queue)
             obj.rcvQ = queue;
@@ -263,9 +309,11 @@ function [frameDets, keyCount, frameFeats, bboxes] = reid_inference(obj)
         keypoint_conf = keypoints(:,3);
         % Extract keypoints with confidence >= kp_conf_thresh
         valid_mask = keypoint_conf >= obj.kp_conf_thresh;
-        valid_keypoints = keypoints(valid_mask,1:2);
         % Count the number of valid keypoints
         key_cnt = nnz(valid_mask);
+        % Extract keypoints with confidence >= 0.05
+        valid_mask = keypoint_conf >= 0.05;
+        valid_keypoints = keypoints(valid_mask,1:2);
         if (key_cnt >= obj.kp_count_thresh)
             % If enough valid keypoints, extract bbox dims
             %   [min_x,min_y,max_x,max_y] and ensure they are in
@@ -329,4 +377,55 @@ function r = iou(box1,box2)
         union = area1 + area2 - intersection;
         r = intersection/union;
     end
+end
+
+function r = gt_matching(validation, gt, dets, frame)  
+    num_dets = size(dets,1);
+    num_gt = size(gt,1);
+    
+    gt = single(gt);
+    
+    gt_cleared = ones(num_gt,1);
+    
+    matches = zeros(num_dets,num_gt);
+    for d = 1:num_dets
+        for g = 1:num_gt
+            in = iou(dets(d,2:end), gt(g,3:end));
+
+            if in > 0.3
+                matches(d,g) = in;
+            end
+        end
+    end
+    
+    valid = validation;
+    
+%     if nnz(matches) < length(gt_cleared)
+%         
+%         im_name = sprintf('data/DukeMTMC/frames/camera5/%06d.jpg',frame);
+%         img = imread(im_name);
+%         imshow(img);
+%         hold on;
+%         for d = 1:num_dets
+%             scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
+%             rectangle('Position',scaleddet,'EdgeColor',[0.5+0.1*d,0,0]);
+%         end
+%         for g = 1:num_gt
+%             scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
+%             rectangle('Position',scaledgt,'EdgeColor',[0,0.5+0.1*g,0]);
+%         end
+%         hold off;
+%     end
+    
+    while nnz(matches) > 0
+        best_match = max(matches,[],'all');
+        [d,g] = find(matches==best_match);
+        valid(gt(g(1),1)) = dets(d(1),1);
+        matches(d(1),:) = zeros(1,num_gt);
+        matches(:,g(1)) = zeros(num_dets,1);
+        gt_cleared(g(1)) = 0;
+    end
+
+    valid(gt(gt_cleared==1,1)) = -1;
+    r = valid;
 end
