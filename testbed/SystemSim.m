@@ -30,8 +30,8 @@ for i = 1:length(cameras)
 end
 %%
 
-match_weights = [0.85];
-match_thresholds = [0.8];
+match_weights = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+match_thresholds = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2];
 
 for mw = 1:length(match_weights)
     for mt = 1:length(match_thresholds)
