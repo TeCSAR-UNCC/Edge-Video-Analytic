@@ -30,27 +30,41 @@ for i = 1:length(cameras)
 end
 %%
 
-for i = 1:length(cameras)
-    edge_nodes(i) = edge_nodes(i).resetNode(); % Reset Edge Nodes
-end
+match_weights = [0.85];
+match_thresholds = [0.8];
 
-edge_server_ops(edge_nodes,1); % Reset Edge Server
-
-for i = test_range(1):test_range(2)
-    for n = 1:length(cameras)
-        if (edge_nodes(n).ready(i)==1)
-            edge_nodes(n) = edge_nodes(n).process_step();
+for mw = 1:length(match_weights)
+    for mt = 1:length(match_thresholds)
+        for i = 1:length(cameras)
+            edge_nodes(i) = edge_nodes(i).setMatchThresholdWeights(match_weights(mw),match_thresholds(mt));
+            edge_nodes(i) = edge_nodes(i).resetNode(); % Reset Edge Nodes
         end
+
+        edge_server_ops(edge_nodes,1); % Reset Edge Server
+
+        for i = test_range(1):test_range(2)
+            for n = 1:length(cameras)
+                if (edge_nodes(n).ready(i)==1)
+                    edge_nodes(n) = edge_nodes(n).process_step();
+                end
+            end
+
+            edge_nodes = edge_server_ops(edge_nodes,0);
+        end
+
+        for n = 1:length(cameras)
+            [instances, avg_instances, miss_rates, avg_miss, id_modes, id_mode_counts, ...
+             recall_precision, avg_recall, id_recall_recision, avg_id_recall, ...
+             num_ids, avg_num_ids] = validation_stats(edge_nodes(n));
+
+            [confusion_matrix, normalized_conf_matrix] = confusion_analysis(edge_nodes(n).val_table, id_modes);
+        end
+        savename = sprintf('cam5_mw_%02f_mt_%02f.mat',match_weights(mw),match_thresholds(mt));
+        save savename instances avg_instances miss_rates avg_miss id_modes ...
+            id_mode_counts recall_precision avg_recall id_recall_precision ...
+            avg_id_recall num_ids avg_num_ids confusion_matrix normalized_conf_matrix
     end
-    
-    edge_nodes = edge_server_ops(edge_nodes,0);
 end
-%%
-
-for n = 1:length(cameras)
-    [instances, avg_instances, miss_rates, avg_miss, id_modes, recall_precision, avg_recall, id_recall_recision, avg_id_recall, num_ids, avg_num_ids] = validation_stats(edge_nodes(n));
-end
-
 function r = duke_camera_params(id, dataPath, ground_truth, startFrame, endFrame, srcFrameRt, outFrameRt, tabSize, tabLife, kpcth, kpcnt)
 % CAMERA_PARAMS Helper function for generating camera_params struct
 %   Inputs:
@@ -270,10 +284,14 @@ function nodes = edge_server_ops(nodes, rst)
             end
         end
         nodes(cam) = nodes(cam).fillRcvQ(sendQ);
+        nodes(cam) = nodes(cam).rstSendQ();
     end
 end
 
-function [instances, avg_instances, miss_rates, avg_miss, id_modes, recall_precision, avg_recall, id_recall_precision, avg_id_recall, num_ids, avg_num_ids] = validation_stats(node)
+function [instances, avg_instances, miss_rates, avg_miss, ...
+          id_modes, id_mode_counts, recall_precision, avg_recall, ...
+          id_recall_precision, avg_id_recall, ...
+          num_ids, avg_num_ids] = validation_stats(node)
     val_tab = node.val_table;
     
     val_len = size(val_tab,1);
@@ -281,6 +299,7 @@ function [instances, avg_instances, miss_rates, avg_miss, id_modes, recall_preci
     instances = zeros(val_len,1);
     miss_rates = zeros(val_len,1);
     id_modes = zeros(val_len,1);
+    id_mode_counts = zeros(val_len,1);
     recall_precision = zeros(val_len,1);
     id_recall_precision = zeros(val_len,1);
     num_ids = zeros(val_len,1);
@@ -292,6 +311,7 @@ function [instances, avg_instances, miss_rates, avg_miss, id_modes, recall_preci
             instances(i) = nnz(val_tab(i,:));
             miss_rates(i) = length(find(val_tab(i,:)==-1))/nnz(val_tab(i,:));
             id_modes(i) = mode(val_tab(i,find(val_tab(i,:)>0)));
+            id_mode_counts(i) = length(val_tab(i,find(val_tab(i,:)==id_modes(i))));
             num_ids(i) = length(unique(val_tab(i,find(val_tab(i,:)>0))));
             if (id_modes(i) > 0)
                 recall_precision(i) = length(find(val_tab(i,:)==id_modes(i)))/nnz(val_tab(i,:));
@@ -307,4 +327,26 @@ function [instances, avg_instances, miss_rates, avg_miss, id_modes, recall_preci
     avg_recall = successes/nnz(val_tab);
     avg_id_recall = avg_recall/(1-avg_miss);
     avg_num_ids = mean(num_ids(valid_idxs));
+end
+
+function [confusion_matrix, normalized_conf_matrix] = confusion_analysis(val_table, id_modes)
+    num_labels = nnz(id_modes);
+    label_idxs = find(id_modes ~= 0);
+    confusion_matrix = zeros(num_labels,num_labels+1);
+    
+    for label1 = 1:num_labels
+        num_dets = length(val_table(label1,find(val_table(label_idxs(label1),:)>0)));
+        for label2 = 1:num_labels
+            confusion_matrix(label1,label2) = ...
+                length(val_table(label1,find(val_table(label_idxs(label1),:)==id_modes(label_idxs(label2))))) ...
+                / num_dets;
+        end
+        confusion_matrix(label1,num_labels+1) = 1 - sum(confusion_matrix(label1,:));
+    end
+    
+    normalized_conf_matrix = confusion_matrix(:,1:num_labels);
+    for i = 1:num_labels
+        normalized_conf_matrix(i,:) = normalized_conf_matrix(i,:) / sum(normalized_conf_matrix(i,:));
+    end
+    figure; imshow(normalized_conf_matrix);
 end

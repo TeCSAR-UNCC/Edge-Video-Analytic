@@ -18,7 +18,7 @@ for det = 1:num_detections
     % Full bounding box dimension calculations (head-to-toe)
     keypoints = reshape(detection,3,25)';
     keypoint_conf = keypoints(:,3);
-    valid_mask = keypoint_conf >= 0.5;
+    valid_mask = keypoint_conf >= 0.05;
     valid_keypoints = keypoints(valid_mask,1:2);
     if (~isempty(valid_keypoints))
         min_x = min(valid_keypoints(:,1));
@@ -33,7 +33,7 @@ for det = 1:num_detections
     % Cropped bounding box 
     keypoints = keypoints(cropped_keypoint_mask,:);
     keypoint_conf = keypoints(:,3);
-    valid_mask = keypoint_conf >= 0.5;
+    valid_mask = keypoint_conf >= 0.05;
     valid_keypoints = keypoints(valid_mask,1:2);
     if (~isempty(valid_keypoints))
         min_x = min(valid_keypoints(:,1));

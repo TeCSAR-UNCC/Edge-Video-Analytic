@@ -33,6 +33,7 @@ classdef EdgeNode
         
         % Validation params
         gt % Ground truth data for edge node
+        gt_frames
         num_ids % Number of unique IDs in the ground truth
         val_table % ID validation table
         gt_idx
@@ -70,6 +71,7 @@ classdef EdgeNode
                 obj.srv_kp_thresh = 20;
                 
                 obj.gt = params.gt;
+                obj.gt_frames = obj.gt(:,2);
                 obj.num_ids = params.num_ids;
                 if obj.num_ids > 0
                     obj.val_table = zeros(obj.num_ids,length(obj.frames),'int32');
@@ -206,14 +208,16 @@ classdef EdgeNode
             end
             
             if obj.num_ids > 0
-                frame_gt = [];
-                while (obj.gt_idx<=size(obj.gt,1)) && (obj.gt(obj.gt_idx,2)==obj.currFrame)
-                    frame_gt = [frame_gt; obj.gt(obj.gt_idx,:)];
-                    obj.gt_idx = obj.gt_idx + 1;
-                end
-                if ~isempty(frame_gt)
+%                 frame_gt = [];
+%                 while (obj.gt_idx<=size(obj.gt,1)) && (obj.gt(obj.gt_idx,2)==obj.currFrame)
+%                     frame_gt = [frame_gt; obj.gt(obj.gt_idx,:)];
+%                     obj.gt_idx = obj.gt_idx + 1;
+%                 end
+                gt_idxs = find(obj.gt_frames==obj.currFrame);
+                if ~isempty(gt_idxs)
+                    frame_gt = obj.gt(gt_idxs,:);
                     obj.val_table(:,obj.currFrameIdx) = ...
-                        gt_matching(obj.val_table(:,obj.currFrameIdx), frame_gt, labeled_dets, obj.currFrame);
+                        gt_matching(obj.id, obj.val_table(:,obj.currFrameIdx), frame_gt, labeled_dets, obj.currFrame);
                 end
             end
             
@@ -249,8 +253,16 @@ classdef EdgeNode
         function r = getSendQ(obj)
             r = obj.sendQ;
         end
+        function obj = rstSendQ(obj)
+            obj.sendQ = [];
+        end
         function r = getID(obj)
             r = obj.id;
+        end
+        function obj = setMatchThresholdWeights(obj, l2w, thr)
+            obj.iou_weight = 1-l2w;
+            obj.l2_weight = l2w;
+            obj.match_threshold = thr;
         end
     end
 end
@@ -379,7 +391,7 @@ function r = iou(box1,box2)
     end
 end
 
-function r = gt_matching(validation, gt, dets, frame)  
+function r = gt_matching(id, validation, gt, dets, frame)  
     num_dets = size(dets,1);
     num_gt = size(gt,1);
     
@@ -401,20 +413,18 @@ function r = gt_matching(validation, gt, dets, frame)
     valid = validation;
     
 %     if nnz(matches) < length(gt_cleared)
-%         
 %         im_name = sprintf('data/DukeMTMC/frames/camera5/%06d.jpg',frame);
+%         save_name = sprintf('data/bad_frames/camera%d/%06d.jpg',id,frame);
 %         img = imread(im_name);
-%         imshow(img);
-%         hold on;
 %         for d = 1:num_dets
 %             scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
-%             rectangle('Position',scaleddet,'EdgeColor',[0.5+0.1*d,0,0]);
+%             img = insertShape(img,'rectangle',scaleddet,'Color',[128+10*d,0,0],'LineWidth',3);
 %         end
 %         for g = 1:num_gt
 %             scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
-%             rectangle('Position',scaledgt,'EdgeColor',[0,0.5+0.1*g,0]);
+%             img = insertShape(img,'rectangle',scaledgt,'Color',[0,128+10*g,0],'LineWidth',3);
 %         end
-%         hold off;
+%         imwrite(img,save_name);
 %     end
     
     while nnz(matches) > 0

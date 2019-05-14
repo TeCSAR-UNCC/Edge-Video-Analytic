@@ -1,3 +1,6 @@
 DukeMTMC
 *.json
 keypoint_mats/*
+bad_frames
+features
+keypoints
