@@ -30,41 +30,38 @@ for i = 1:length(cameras)
 end
 %%
 
-match_weights = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-match_thresholds = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2];
-
-for mw = 1:length(match_weights)
-    for mt = 1:length(match_thresholds)
-        for i = 1:length(cameras)
-            edge_nodes(i) = edge_nodes(i).setMatchThresholdWeights(match_weights(mw),match_thresholds(mt));
-            edge_nodes(i) = edge_nodes(i).resetNode(); % Reset Edge Nodes
-        end
-
-        edge_server_ops(edge_nodes,1); % Reset Edge Server
-
-        for i = test_range(1):test_range(2)
-            for n = 1:length(cameras)
-                if (edge_nodes(n).ready(i)==1)
-                    edge_nodes(n) = edge_nodes(n).process_step();
-                end
-            end
-
-            edge_nodes = edge_server_ops(edge_nodes,0);
-        end
-
-        for n = 1:length(cameras)
-            [instances, avg_instances, miss_rates, avg_miss, id_modes, id_mode_counts, ...
-             recall_precision, avg_recall, id_recall_recision, avg_id_recall, ...
-             num_ids, avg_num_ids] = validation_stats(edge_nodes(n));
-
-            [confusion_matrix, normalized_conf_matrix] = confusion_analysis(edge_nodes(n).val_table, id_modes);
-        end
-        savename = sprintf('cam5_mw_%02f_mt_%02f.mat',match_weights(mw),match_thresholds(mt));
-        save savename instances avg_instances miss_rates avg_miss id_modes ...
-            id_mode_counts recall_precision avg_recall id_recall_precision ...
-            avg_id_recall num_ids avg_num_ids confusion_matrix normalized_conf_matrix
-    end
+for i = 1:length(cameras)
+    edge_nodes(i) = edge_nodes(i).setMatchThresholdWeights(1,9999);
+    edge_nodes(i) = edge_nodes(i).resetNode(); % Reset Edge Nodes
 end
+
+edge_server_ops(edge_nodes,1); % Reset Edge Server
+
+progressbar('Simulation Status', 'Validation Status', 'Confusion Analysis Status');
+for i = test_range(1):test_range(2)
+    for n = 1:length(cameras)
+        if (edge_nodes(n).ready(i)==1)
+            edge_nodes(n) = edge_nodes(n).process_step();
+        end
+    end
+
+    edge_nodes = edge_server_ops(edge_nodes,0);
+    progressbar((i-test_range(1))/(test_range(2)-test_range(1)),[],[]);
+end
+
+for n = 1:length(cameras)
+    [instances, avg_instances, miss_rates, avg_miss, id_modes, id_mode_counts, ...
+     recall_precision, avg_recall, id_recall_precision, avg_id_recall, ...
+     num_ids, avg_num_ids] = validation_stats(edge_nodes(n));
+
+    [confusion_matrix] = confusion_analysis(edge_nodes(n).val_table, id_modes);
+end
+
+savename = sprintf('cam5_mw_%02f_mt_%02f.mat',match_weights(mw),match_thresholds(mt));
+save(savename, 'instances', 'avg_instances', 'miss_rates', 'avg_miss', 'id_modes', ...
+    'id_mode_counts', 'recall_precision', 'avg_recall', 'id_recall_precision', ...
+    'avg_id_recall', 'num_ids', 'avg_num_ids', 'confusion_matrix');
+
 function r = duke_camera_params(id, dataPath, ground_truth, startFrame, endFrame, srcFrameRt, outFrameRt, tabSize, tabLife, kpcth, kpcnt)
 % CAMERA_PARAMS Helper function for generating camera_params struct
 %   Inputs:
@@ -320,6 +317,7 @@ function [instances, avg_instances, miss_rates, avg_miss, ...
             end
             valid_idxs = [valid_idxs; i];
         end
+        progressbar([],i/val_len,[]);
     end
     
     avg_instances = mean(instances(valid_idxs));
@@ -329,7 +327,7 @@ function [instances, avg_instances, miss_rates, avg_miss, ...
     avg_num_ids = mean(num_ids(valid_idxs));
 end
 
-function [confusion_matrix, normalized_conf_matrix] = confusion_analysis(val_table, id_modes)
+function [confusion_matrix] = confusion_analysis(val_table, id_modes)
     num_labels = nnz(id_modes);
     label_idxs = find(id_modes ~= 0);
     confusion_matrix = zeros(num_labels,num_labels+1);
@@ -342,11 +340,8 @@ function [confusion_matrix, normalized_conf_matrix] = confusion_analysis(val_tab
                 / num_dets;
         end
         confusion_matrix(label1,num_labels+1) = 1 - sum(confusion_matrix(label1,:));
+        progressbar([],[],label1/num_labels);
     end
-    
-    normalized_conf_matrix = confusion_matrix(:,1:num_labels);
-    for i = 1:num_labels
-        normalized_conf_matrix(i,:) = normalized_conf_matrix(i,:) / sum(normalized_conf_matrix(i,:));
-    end
-    figure; imshow(normalized_conf_matrix);
+
+    figure; imshow(confusion_matrix);
 end

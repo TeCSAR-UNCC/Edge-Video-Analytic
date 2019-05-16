@@ -138,7 +138,10 @@ classdef EdgeNode
                                  features(valid_dets(det),:));
                         tab_person = obj.obj_table(valid_tabs(tab)).sendObject;
                         tab_bbox = [tab_person.xPos,tab_person.yPos,tab_person.width,tab_person.height];
-                        match = match + obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
+                        if (iou(bboxes(valid_dets(det),:),tab_bbox) > 0.2)
+                            match = Inf;
+                        end
+%                         match = match + obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
                         if (match < obj.match_threshold)
                             match_table(valid_dets(det),valid_tabs(tab)) = match;
                         end
