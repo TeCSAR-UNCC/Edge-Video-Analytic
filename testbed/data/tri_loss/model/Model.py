@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ShuffleNetV2 import shufflenetv2, shufflenetFeature
-from MobileNetV2 import mobileNetFeature
-from resnet import resnet50AvgPooling
+from tri_loss.model.ShuffleNetV2 import shufflenetv2, shufflenetFeature
+from tri_loss.model.MobileNetV2 import mobileNetFeature
+from tri_loss.model.resnet import resnet50AvgPooling
 
 class Model(nn.Module): 
   def __init__(self, net, path_to_predefined='', pretrained=True, last_conv_stride=1):

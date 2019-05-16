@@ -43,6 +43,7 @@ class Config(object):
                             choices=['resnet50', 'shuffelnetV2', 'mobilenetV2'])
         parser.add_argument('--bbox_mat', type=str, default='')
         parser.add_argument('--batch_size', type=eval, default=(1))
+        parser.add_argument('--num_workers', type=eval, default=(8))
 
         args = parser.parse_args()
 
@@ -67,6 +68,8 @@ class Config(object):
         self.bbox_mat = args.bbox_mat
 
         self.batch_size = args.batch_size
+
+        self.num_workers = args.num_workers
 
 class BoundingBoxCrops(Dataset):
     def pre_process_im(self, im, cfg):
@@ -184,7 +187,7 @@ def main():
     loader = DataLoader(dataset=dataset,
                         batch_size=cfg.batch_size,
                         shuffle=False,
-                        num_workers=min(cfg.batch_size,16))
+                        num_workers=cfg.num_workers)
 
     print('Processing detections')
     for i, data in tqdm(enumerate(loader, 0)):
