@@ -1,7 +1,5 @@
-"""Example
-python script/experiment/infer_images_example.py \
---model_weight_file YOUR_MODEL_WEIGHT_FILE
-"""
+#!/usr/bin/python3
+
 from __future__ import print_function
 
 import sys
@@ -190,7 +188,8 @@ def main():
                         num_workers=cfg.num_workers)
 
     print('Processing detections')
-    for i, data in tqdm(enumerate(loader, 0)):
+    t = tqdm(iter(loader), leave=False, total=len(loader))
+    for i, data in enumerate(t):
         imgs, bad_boxes = data
 
         imgs = Variable(TVT(imgs))

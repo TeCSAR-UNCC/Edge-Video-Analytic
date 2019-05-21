@@ -9,7 +9,7 @@ num_detections = size(detections, 1);
 
 full_bboxes = zeros(num_detections, 5);
 cropped_bboxes = zeros(num_detections, 5);
-cropped_keypoint_mask = [1,2,3,6,9,10,13,16,17,18,19];
+cropped_keypoint_mask = [1:4,6,7,9:11,13,14,16:19];
 
 for det = 1:num_detections
     frame = detections(det,1);
@@ -21,10 +21,10 @@ for det = 1:num_detections
     valid_mask = keypoint_conf >= 0.05;
     valid_keypoints = keypoints(valid_mask,1:2);
     if (~isempty(valid_keypoints))
-        min_x = min(valid_keypoints(:,1));
-        min_y = min(valid_keypoints(:,2));
-        max_x = max(valid_keypoints(:,1));
-        max_y = max(valid_keypoints(:,2));
+        min_x = min(max(min(valid_keypoints(:,1)),0),1);
+        min_y = min(max(min(valid_keypoints(:,2)),0),1);
+        max_x = min(max(max(valid_keypoints(:,1)),0),1);
+        max_y = min(max(max(valid_keypoints(:,2)),0),1);
         full_bboxes(det,:) = [frame min_x, min_y, max_x, max_y];
     else
         full_bboxes(det,:) = [frame 0 0 0 0];
@@ -36,10 +36,10 @@ for det = 1:num_detections
     valid_mask = keypoint_conf >= 0.05;
     valid_keypoints = keypoints(valid_mask,1:2);
     if (~isempty(valid_keypoints))
-        min_x = min(valid_keypoints(:,1));
-        min_y = min(valid_keypoints(:,2));
-        max_x = max(valid_keypoints(:,1));
-        max_y = max(valid_keypoints(:,2));
+        min_x = min(max(min(valid_keypoints(:,1)),0),1);
+        min_y = min(max(min(valid_keypoints(:,2)),0),1);
+        max_x = min(max(max(valid_keypoints(:,1)),0),1);
+        max_y = min(max(max(valid_keypoints(:,2)),0),1);
         cropped_bboxes(det,:) = [frame min_x, min_y, max_x, max_y];
     else
         cropped_bboxes(det,:) = [frame 0 0 0 0];
