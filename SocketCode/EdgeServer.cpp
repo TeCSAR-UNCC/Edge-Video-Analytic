@@ -111,10 +111,10 @@ void *sendData(void* index) {
           int retCode = send(sock, &data, sizeof(reIDType), 0);
           //std::cout << "retCode: " << retCode << std::endl;
           /* Check status to make sure connection is still valid*/
-          pthread_mutex_lock(&statusLocks[statIndex]);
-          status = nodeStatus[statIndex];
-          pthread_mutex_unlock(&statusLocks[statIndex]);
         }
+        pthread_mutex_lock(&statusLocks[statIndex]);
+        status = nodeStatus[statIndex];
+        pthread_mutex_unlock(&statusLocks[statIndex]);
         pthread_mutex_unlock(&sendLocks[statIndex]);
       }
       close(sock);
