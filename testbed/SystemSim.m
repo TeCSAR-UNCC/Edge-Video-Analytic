@@ -45,7 +45,7 @@ for i = test_range(1):test_range(2)
         end
     end
 
-    edge_nodes = edge_server_ops(edge_nodes,0);
+%     edge_nodes = edge_server_ops(edge_nodes,0);
     progressbar((i-test_range(1))/(test_range(2)-test_range(1)),[],[]);
 end
 
@@ -54,10 +54,10 @@ for n = 1:length(cameras)
      recall_precision, avg_recall, id_recall_precision, avg_id_recall, ...
      num_ids, avg_num_ids] = validation_stats(edge_nodes(n));
 
-    [confusion_matrix] = confusion_analysis(edge_nodes(n).val_table, id_modes);
+    [confusion_matrix, shared_ids] = confusion_analysis(edge_nodes(n).val_table, id_modes);
 end
 
-savename = sprintf('cam5_mw_%02f_mt_%02f.mat',match_weights(mw),match_thresholds(mt));
+savename = sprintf('cam5.mat');
 save(savename, 'instances', 'avg_instances', 'miss_rates', 'avg_miss', 'id_modes', ...
     'id_mode_counts', 'recall_precision', 'avg_recall', 'id_recall_precision', ...
     'avg_id_recall', 'num_ids', 'avg_num_ids', 'confusion_matrix');
@@ -327,16 +327,25 @@ function [instances, avg_instances, miss_rates, avg_miss, ...
     avg_num_ids = mean(num_ids(valid_idxs));
 end
 
-function [confusion_matrix] = confusion_analysis(val_table, id_modes)
+function [confusion_matrix, shared_ids] = confusion_analysis(val_table, id_modes)
     num_labels = nnz(id_modes);
     label_idxs = find(id_modes ~= 0);
     confusion_matrix = zeros(num_labels,num_labels+1);
+    shared_ids = [];
+    unique_ids = unique(id_modes(id_modes>0));
+    
+    for i = 1:length(unique_ids)
+        sharers = find(id_modes==unique_ids(i));
+        if length(sharers) > 1
+            shared_ids = [shared_ids; struct('Label',unique_ids(i),'Sharers',sharers)];
+        end
+    end
     
     for label1 = 1:num_labels
-        num_dets = length(val_table(label1,find(val_table(label_idxs(label1),:)>0)));
+        num_dets = length(val_table(label1,val_table(label_idxs(label1),:)>0));
         for label2 = 1:num_labels
             confusion_matrix(label1,label2) = ...
-                length(val_table(label1,find(val_table(label_idxs(label1),:)==id_modes(label_idxs(label2))))) ...
+                length(val_table(label1,val_table(label_idxs(label1),:)==id_modes(label_idxs(label2)))) ...
                 / num_dets;
         end
         confusion_matrix(label1,num_labels+1) = 1 - sum(confusion_matrix(label1,:));

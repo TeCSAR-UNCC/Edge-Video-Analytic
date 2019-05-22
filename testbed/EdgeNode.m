@@ -134,11 +134,11 @@ classdef EdgeNode
                 for tab = 1:length(valid_tabs)
                     for det = 1:length(valid_dets)
                         match = ...
-                            obj.l2_weight*norm(obj.obj_table(valid_tabs(tab)).sendObject.fv_array - ...
-                                 features(valid_dets(det),:));
+                            obj.l2_weight*vecnorm(obj.obj_table(valid_tabs(tab)).sendObject.fv_array - ...
+                                 features(valid_dets(det),:),2,2);
                         tab_person = obj.obj_table(valid_tabs(tab)).sendObject;
                         tab_bbox = [tab_person.xPos,tab_person.yPos,tab_person.width,tab_person.height];
-                        if (iou(bboxes(valid_dets(det),:),tab_bbox) > 0.2)
+                        if (iou(bboxes(valid_dets(det),:),tab_bbox) == 0) && (match > 2)
                             match = Inf;
                         end
 %                         match = match + obj.iou_weight*(1 - iou(bboxes(valid_dets(det),:),tab_bbox));
@@ -162,7 +162,7 @@ classdef EdgeNode
                     so.width = bboxes(det,3);
                     so.height = bboxes(det,4);
                     if (validKPCounts(det) > obj.obj_table(tab).keyCount)
-                        so.fv_array = features(det);
+                        so.fv_array = features(det,:);
                         obj.obj_table(tab).keyCount = validKPCounts(det);
                         if (validKPCounts(det) > obj.srv_kp_thresh)
                             obj.sendQ = [obj.sendQ; so];
