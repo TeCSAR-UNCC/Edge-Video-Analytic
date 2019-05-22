@@ -282,8 +282,8 @@ int main(int argc, char const *argv[]) {
     for(int i = 0; i < NUM_NODES; ++i) {
     	int matchIndex = -1;
 			int tmpMatchIndex = -1;
-			int tmpEucDist = 1000;
-			int minEucDist = 1000;
+			float tmpEucDist = 1000;
+			float minEucDist = 1000;
 			int max = -1;
 			int useIndex = -1;
 			bool updateFlag = false;
