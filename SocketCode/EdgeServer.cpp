@@ -21,10 +21,10 @@
 #define NUM_NODES 2
 #define SIZEOFDB 1000
 #define OUTPUT_SIZE 1280
-#define EUC_THRESH 4.1   //4.25 mobilenet 
+#define EUC_THRESH 4.25   //4.25 mobilenet 
 using namespace std;
 
-
+//g++ SDserver.cpp -pthread -o SDserver
 
 pthread_mutex_t sendLocks[NUM_NODES];
 pthread_mutex_t recvLocks[NUM_NODES];
@@ -36,7 +36,6 @@ string clientIP[NUM_NODES];
 
 struct personType
 {
-	int anomalyFlag;
 	int currentCamera;
 	int label;
 	float fv_array[OUTPUT_SIZE];
@@ -229,9 +228,9 @@ void *listenFunc(void*) {
     cout << "UseIndex: " << useIndex << endl;
     if(useIndex > -1) {
       pthread_mutex_lock(&statusLocks[useIndex]);
-      if(!clientIP[useIndex].empty()) {
-            cout << "IPb: " << clientIP[useIndex] << endl;
-      }
+if(!clientIP[useIndex].empty()) {
+      cout << "IPb: " << clientIP[useIndex] << endl;
+}
       string str(inet_ntoa(clientAddr.sin_addr));
       clientIP[useIndex] = str;
       cout << "IPa: " << clientIP[useIndex] << endl;
@@ -276,15 +275,15 @@ int main(int argc, char const *argv[]) {
   sleep(3);
   int j = 0;
   reIDType pushData;
-  personType tmpPerson;
-  unsigned int globalLabel = 1; 	
+	personType tmpPerson;
+	
   while(1) {
     // Pop values out of recv queue
     for(int i = 0; i < NUM_NODES; ++i) {
     	int matchIndex = -1;
 			int tmpMatchIndex = -1;
-			double tmpEucDist = 1000;
-			double minEucDist = 1000;
+			float tmpEucDist = 1000;
+			float minEucDist = 1000;
 			int max = -1;
 			int useIndex = -1;
 			bool updateFlag = false;
@@ -307,7 +306,6 @@ int main(int argc, char const *argv[]) {
 
             if(tmpPerson.currentCamera > -1) { //if not an unlock recv
 						  tmpEucDist = cv::norm(dataBase[j].fv, matTP, cv::NORM_L2);
-						  cout << "EucDist: " << tmpEucDist << endl;
               if( (dataBase[j].personObject.label == tmpPerson.label) && (dataBase[j].personObject.currentCamera == tmpPerson.currentCamera) ) {
 							  updateFlag = true;
 							  matchIndex = j;
@@ -350,14 +348,14 @@ int main(int argc, char const *argv[]) {
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 				  }
-				  else if ((currentIndex < SIZEOFDB) && (tmpPerson.anomalyFlag == 1)){
+				  else if (currentIndex < SIZEOFDB){
 					  cout << "currentIndex = " << currentIndex << endl;
 					  dataBase[currentIndex].personObject.xPos = tmpPerson.xPos;
 					  dataBase[currentIndex].personObject.yPos = tmpPerson.yPos;
 					  dataBase[currentIndex].personObject.height = tmpPerson.height;
 					  dataBase[currentIndex].personObject.width = tmpPerson.width;
             dataBase[currentIndex].personObject.currentCamera = tmpPerson.currentCamera;
-					  dataBase[currentIndex].personObject.label = globalLabel;
+					  dataBase[currentIndex].personObject.label = tmpPerson.label;
 					  memcpy(&dataBase[currentIndex].personObject.fv_array, &tmpPerson.fv_array, OUTPUT_SIZE*sizeof(float));
 					  matTP.copyTo(dataBase[currentIndex].fv);
 					  pushData.oldID = tmpPerson.label;
@@ -369,9 +367,8 @@ int main(int argc, char const *argv[]) {
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[currentIndex].lru = 0;
 					  currentIndex++;
-                      globalLabel++;
 				  }
-				  else if (tmpPerson.anomalyFlag == 1) {
+				  else{
 					  cout << "Database is full. Initiating replacement policy..." << endl;
 					  for(int k=0; k < SIZEOFDB; k++){
 						  if(max < dataBase[k].lru){
@@ -384,7 +381,7 @@ int main(int argc, char const *argv[]) {
 					  dataBase[useIndex].personObject.height = tmpPerson.height;
 					  dataBase[useIndex].personObject.width = tmpPerson.width;
             dataBase[useIndex].personObject.currentCamera = tmpPerson.currentCamera;
-					  dataBase[useIndex].personObject.label = globalLabel;
+					  dataBase[useIndex].personObject.label = tmpPerson.label;
 					  memcpy(&dataBase[useIndex].personObject.fv_array, &tmpPerson.fv_array, OUTPUT_SIZE*sizeof(float));
 					  matTP.copyTo(dataBase[useIndex].fv);
 					  pushData.oldID = tmpPerson.label;
@@ -395,7 +392,6 @@ int main(int argc, char const *argv[]) {
 					  sQList[i].push(pushData);
 					  pthread_mutex_unlock(&sendLocks[i]);
 					  dataBase[useIndex].lru = 0;
-                      globalLabel++;
 				  }
         }
 			}	
