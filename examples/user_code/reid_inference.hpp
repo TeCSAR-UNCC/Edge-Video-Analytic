@@ -76,7 +76,7 @@ class ReIDInference : public op::Worker<std::shared_ptr<std::vector<std::shared_
                 auto poseKeypoints = datumsPtr->at(0)->poseKeypoints;
                 auto thresholdRectangle = 0.1f;
                 auto thresholdKeypoints = 0.5f;
-                auto minKeypoints = 15;
+                auto minKeypoints = 12;
 
                 for (auto person = 0 ; person < (std::min(poseKeypoints.getSize(0), INPUT_BS)); person++) {
                     /* Daniel's Edits: Resrict Re-ID to BB that have 12 keypoints or more*/
