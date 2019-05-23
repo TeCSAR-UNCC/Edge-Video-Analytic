@@ -168,7 +168,7 @@ public:
                             float opScore = opEucDist;
 
                             if( (opIoU == 0) && (opScore > 2) ) {
-                                opScore == 9999.0;
+                                opScore = 9999.0;
                             }
 
                             if (opScore < 9990.0) {
