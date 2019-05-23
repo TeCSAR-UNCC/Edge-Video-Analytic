@@ -165,9 +165,13 @@ public:
                             box1[3] = obj_table[j].sendObject.height;
                             float opIoU = intersectionOverUnion(box1,opBBox);
 
-                            float opScore = (opEucDist/10)*EUC_WEIGHT + (1-opIoU)*IOU_WEIGHT;
+                            float opScore = opEucDist;
 
-                            if (opScore < SCORE_THRESH) {
+                            if( (opIoU == 0) && (opScore > 2) ) {
+                                opScore == 9999.0;
+                            }
+
+                            if (opScore < 9990.0) {
                                 /* Algorithm implementation: Implementation */
                                 array<float,2> tempHolder = {(float)j,opScore};
                                 currentDetection.push_back(tempHolder);
@@ -209,28 +213,8 @@ public:
 
                 for (int i = 0; i < (int)detDone.size(); ++i) {
                     int eucIndex = tableDone.at(i);
-                    if (((datumsPtr->at(0)->keypointList.at(detDone.at(i)) > obj_table[eucIndex].keyCount) || ((datumsPtr->at(0)->keypointList.at(detDone.at(i)) >= KEY_SEND_THRESH) && 
-                        (obj_table[eucIndex].sentToServer == 0) )) && (flagMulti.at(detDone.at(i)).size() < MULTI_MATCH_THRESH)) {
+                    if (datumsPtr->at(0)->keypointList.at(detDone.at(i)) > obj_table[eucIndex].keyCount) {
                         int updateFeatureFlag = 1;
-                        float checkBox[4];
-                        checkBox[0] = obj_table[detDone.at(i)].sendObject.xPos;
-                        checkBox[1] = obj_table[detDone.at(i)].sendObject.yPos;
-                        checkBox[2] = obj_table[detDone.at(i)].sendObject.width;
-                        checkBox[3] = obj_table[detDone.at(i)].sendObject.height;
-                        for(int j = 0; j < NUM_OBJECTS; ++j) {
-                            if(obj_table[j].life > 0) {
-                                if (detDone.at(i) == j) continue;
-                                float box1[4];
-                                box1[0] = obj_table[j].sendObject.xPos;
-                                box1[1] = obj_table[j].sendObject.yPos;
-                                box1[2] = obj_table[j].sendObject.width;
-                                box1[3] = obj_table[j].sendObject.height;
-                                float tmpIoU = intersectionOverUnion(box1, checkBox);
-                                if (tmpIoU > 0.3f) {
-                                    updateFeatureFlag = 0;
-                                }
-                            }
-                        }
                         if (updateFeatureFlag ==1) {
                             std::cout << "Updated: Det|Tab\t" << detDone.at(i) << "|" << eucIndex << std::endl;
                             void* ptr = &featureVectors[stepOutput][detDone.at(i)*OUTPUT_SIZE];
