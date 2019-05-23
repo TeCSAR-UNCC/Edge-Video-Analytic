@@ -306,6 +306,7 @@ int main(int argc, char const *argv[]) {
 
             if(tmpPerson.currentCamera > -1) { //if not an unlock recv
 						  tmpEucDist = cv::norm(dataBase[j].fv, matTP, cv::NORM_L2);
+                          cout << "Score:      " << tmpEucDist << endl;
               if( (dataBase[j].personObject.label == tmpPerson.label) && (dataBase[j].personObject.currentCamera == tmpPerson.currentCamera) ) {
 							  updateFlag = true;
 							  matchIndex = j;
