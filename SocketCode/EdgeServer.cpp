@@ -21,7 +21,7 @@
 #define NUM_NODES 2
 #define SIZEOFDB 1000
 #define OUTPUT_SIZE 1280
-#define EUC_THRESH 4.25   //4.25 mobilenet 
+#define EUC_THRESH 5.25  //4.25 mobilenet 
 using namespace std;
 
 //g++ SDserver.cpp -pthread -o SDserver
