@@ -305,6 +305,9 @@ function [frameDets, keyCount, frameFeats, bboxes] = reid_inference(obj)
 %       keyCount - Number of valid keypoints for each valid detection
 %       frameFeats - Encoded feature maps for valid detections
 %       bboxs - Bounding boxes for valid detections
+    body_head = [1:3,6,16:19]';
+    body_torso = [2:10,13]';
+    body_legs = [11,12,14,15,20:25]';
 
     frameIdxs = obj.detections(:,1)==obj.currFrame;
     % Detections for just the current frame
@@ -326,10 +329,14 @@ function [frameDets, keyCount, frameFeats, bboxes] = reid_inference(obj)
         valid_mask = keypoint_conf >= obj.kp_conf_thresh;
         % Count the number of valid keypoints
         key_cnt = nnz(valid_mask);
+        key_cnt_head = nnz(valid_mask(body_head));
+        key_cnt_torso = nnz(valid_mask(body_torso));
+        key_cnt_legs = nnz(valid_mask(body_legs));
         % Extract keypoints with confidence >= 0.05
         valid_mask = keypoint_conf >= 0.05;
         valid_keypoints = keypoints(valid_mask,1:2);
-        if (key_cnt >= obj.kp_count_thresh)
+%         if (key_cnt >= obj.kp_count_thresh)
+        if (key_cnt_head > 0) && (key_cnt_torso > 1) && (key_cnt_legs > 0)
             % If enough valid keypoints, extract bbox dims
             %   [min_x,min_y,max_x,max_y] and ensure they are in
             %   image bounds
