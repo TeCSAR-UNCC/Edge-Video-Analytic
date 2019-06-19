@@ -422,20 +422,20 @@ function r = gt_matching(id, validation, gt, dets, frame)
     
     valid = validation;
     
-%     if nnz(matches) < length(gt_cleared)
-%         im_name = sprintf('data/DukeMTMC/frames/camera5/%06d.jpg',frame);
-%         save_name = sprintf('data/bad_frames/camera%d/%06d.jpg',id,frame);
-%         img = imread(im_name);
-%         for d = 1:num_dets
-%             scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
-%             img = insertShape(img,'rectangle',scaleddet,'Color',[128+10*d,0,0],'LineWidth',3);
-%         end
-%         for g = 1:num_gt
-%             scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
-%             img = insertShape(img,'rectangle',scaledgt,'Color',[0,128+10*g,0],'LineWidth',3);
-%         end
-%         imwrite(img,save_name);
-%     end
+    if nnz(matches) < length(gt_cleared)
+        im_name = sprintf('data/DukeMTMC/frames/camera%d/%06d.jpg',id,frame);
+        save_name = sprintf('data/badframes/camera%d/%06d.jpg',id,frame);
+        img = imread(im_name);
+        for d = 1:num_dets
+            scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
+            img = insertShape(img,'rectangle',scaleddet,'Color',[128+10*d,0,0],'LineWidth',3);
+        end
+        for g = 1:num_gt
+            scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
+            img = insertShape(img,'rectangle',scaledgt,'Color',[0,128+10*g,0],'LineWidth',3);
+        end
+        imwrite(img,save_name);
+    end
     
     while nnz(matches) > 0
         best_match = max(matches,[],'all');
