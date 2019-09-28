@@ -31,38 +31,38 @@ Note: Path names are setup for “tecsar” by default
 
 
 # Part 3: Installing OpenPose and REVAMP2T software
-13. Download the UNCC OpenPose GitHub repository by running the following command in a terminal:
+1. Download the UNCC OpenPose GitHub repository by running the following command in a terminal:
 	git clone https://github.com/TeCSAR-UNCC/Edge-Video-Analytic --recurse-submodules
-14. Fix a variable in the trt_helper.hpp file:
+1. Fix a variable in the trt_helper.hpp file:
 Go to Edge-Video-Analytic/examples/user_code
 Open the file trt_helper.hpp in a text editor:
 On line 10 of the file change “static Logger gLogger“ to “Logger gLogger“ and save.
 
-15. Run the Xavier Setup Script:
+1. Run the Xavier Setup Script:
 In a terminal, change directory to or open a terminal in the root directory (.../Edge-Video-Analytic), then run the following commands:
 chmod +x Xavier_Setup.sh
 	./Xavier_Setup.sh
 
-16. Test if OpenPose is working by running the following command in a terminal:
+1. Test if OpenPose is working by running the following command in a terminal:
 		./build/examples/openpose/openpose.bin --video examples/media/video.avi
 		More demo examples can be found here
 
-17. Fix a path in the trt_help.hpp file:
+1. Fix a path in the trt_help.hpp file:
 Go to Edge-Video-Analytic/examples/user_code
 Open the file trt_helper.hpp in a text editor:
 		On lines 18 & 19, change the last file path from “/home/tecsar” to “~/”
 
-18. Run make on the files:
+1. Run make on the files:
 In a terminal, change directories to or open a terminal in the root directory (.../Edge-Video-Analytic)
 Run the following command in the terminal:
 make -j
 
 
-Part 4: Running the Server
-19. Run the EdgeServer on another Computer (Not the Xavier):
+# Part 4: Running the Server
+1. Run the EdgeServer on another Computer (Not the Xavier):
 Repeat part 3 on another computer to download the UNCC GitHub repository.
 
-20. Install OpenCV2 by doing the following:
+1. Install OpenCV2 by doing the following:
 In a terminal, run the following command:
 git clone https://github.com/jayrambhia/Install-OpenCV
 In a terminal, change directories to or open a terminal to the directory (.../Install-OpenCV/Ubuntu), then run the following commands in a terminal:
@@ -72,7 +72,7 @@ In a terminal, change directories to or open a terminal to the directory (.../In
 
 
 
-21. Change directories to or open a terminal to the directory (.../Edge-Video-Analytic/SocketCode), then run the following command:
+1. Change directories to or open a terminal to the directory (.../Edge-Video-Analytic/SocketCode), then run the following command:
 ifconfig
 make all
 ./EdgeServer.bin
