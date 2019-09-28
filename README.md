@@ -1,6 +1,6 @@
 # NVDA_DETEC
 # Infrastructure for Real-Time Edge Object Reidentification and Tracking
-test
+
 Detection and tracking infrastructure built on top of OpenPose (https://github.com/CMU-Perceptual-Computing-Lab/openpose).
 
 ## Installation
