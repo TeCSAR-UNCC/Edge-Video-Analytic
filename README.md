@@ -85,3 +85,13 @@ make all
 1. Change the contents after -server_ip (shown as a red block below) to the inet IP address you got in step 21.
 
 ![run_change](/doc/media/tecsar/run-script.png)
+
+If you have multiple Xaviers, each with a camera, make sure that each camera has a different camera ID before doing step 24. (see below)
+
+To change the camera ID on each Xavier (skip this if you only have 1 camera):
+Go to Edge-Video-Analytic/examples/user_code
+Open the file reid_constants.hpp in a text editor:
+On line 5, change the value of CAMERA_ID to a number unique to that Xavier.
+
+
+
