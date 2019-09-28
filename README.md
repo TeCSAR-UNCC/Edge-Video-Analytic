@@ -81,15 +81,15 @@ In a terminal, change directories to or open a terminal to the directory (.../In
 	make all
 	./EdgeServer.bin
 
-	**Remember inet IP address (shown as a red block in the image below), you will need it for step 23:**
+	**Remember inet IP address (shown as a red block in the image below), you will need it for step 5:**
 	![inet_IP](/doc/media/tecsar/inet_IP.png)
 1. On the Xavier, change directories to in a terminal or open a terminal in the root directory (.../Edge-Video-Analytic), then open the run file in a text editor.
 
-1. Change the contents after -server_ip (shown as a red block below) to the inet IP address you got in step 21.
+1. Change the contents after -server_ip (shown as a red block below) to the inet IP address you got in step 3.
 
 ![run_change](/doc/media/tecsar/run-script.png)
 
-If you have multiple Xaviers, each with a camera, make sure that each camera has a different camera ID before doing step 24. (see below)
+If you have multiple Xaviers, each with a camera, make sure that each camera has a different camera ID before doing step 6. (see below)
 
 To change the camera ID on each Xavier (skip this if you only have 1 camera):
 Go to Edge-Video-Analytic/examples/user_code
