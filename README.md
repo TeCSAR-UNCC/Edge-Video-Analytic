@@ -5,32 +5,32 @@ Note: Path names are setup for “tecsar” by default
 
 1. Create an account and log in.
 
-3. Following logging in, go to https://developer.nvidia.com/embedded/jetpack-archive, then click on Jetpack 4.2.2.
+1. Following logging in, go to https://developer.nvidia.com/embedded/jetpack-archive, then click on Jetpack 4.2.2.
 
-4. Scroll down until you see a green button labeled “Download SDK Manager”, then click it.
+1. Scroll down until you see a green button labeled “Download SDK Manager”, then click it.
 
-5. Open a terminal where the .deb file is downloaded to. Run the command:
+1. Open a terminal where the .deb file is downloaded to. Run the command:
  sudo apt install sdkmanager_0.9.14-4961_amd64.deb
 
-6. After it completes the installation, type sdkmanager in the terminal. This will open the graphical interface for the SDK Manager. Log in with your NVIDIA account.
+1. After it completes the installation, type sdkmanager in the terminal. This will open the graphical interface for the SDK Manager. Log in with your NVIDIA account.
 
 
-Part 2: Installing prerequisites
-7. In the GUI, make sure the target hardware is the Jetson AGX Xavier, and the target operating system is JetPack 4.2.2.
+# Part 2: Installing prerequisites
+1. In the GUI, make sure the target hardware is the Jetson AGX Xavier, and the target operating system is JetPack 4.2.2.
 
-8. Host Machine can be left checked or unchecked (check indicates that files will be downloaded onto your machine before being installed on the Xavier, potentially saving time in the event you need to reload it later). Click Continue.
+1. Host Machine can be left checked or unchecked (check indicates that files will be downloaded onto your machine before being installed on the Xavier, potentially saving time in the event you need to reload it later). Click Continue.
 
-9. Check all available options, then accept the terms and conditions, then click continue.
+1. Check all available options, then accept the terms and conditions, then click continue.
 
-10. Connect the Xavier to your PC with a USB-C to USB connector. Follow the instructions on screen. If you select “automatic” during the flashing process, you will need to enter the current username and password for the Xavier.
+1. Connect the Xavier to your PC with a USB-C to USB connector. Follow the instructions on screen. If you select “automatic” during the flashing process, you will need to enter the current username and password for the Xavier.
 
-11. Allow some time for the OS to flash. After the OS is done installing, you will need to manually finish the installation process for it (selecting a username, password, timezone, etc). As soon as it gets to the desktop or login screen, the process will resume.
+1. Allow some time for the OS to flash. After the OS is done installing, you will need to manually finish the installation process for it (selecting a username, password, timezone, etc). As soon as it gets to the desktop or login screen, the process will resume.
 
-12. Watch the computer connected to the Xavier. The installation process is not complete until the NVIDIA SDK Manager indicates it.
-12a. If issues occur with OpenPose, reinstall CUDA on the Xavier from the Jetpack SDK Manager. Make sure the OS option is unchecked for this process.
+1. Watch the computer connected to the Xavier. The installation process is not complete until the NVIDIA SDK Manager indicates it.
+	1. If issues occur with OpenPose, reinstall CUDA on the Xavier from the Jetpack SDK Manager. Make sure the OS option is unchecked for this process.
 
 
-Part 3: Installing OpenPose and REVAMP2T software
+# Part 3: Installing OpenPose and REVAMP2T software
 13. Download the UNCC OpenPose GitHub repository by running the following command in a terminal:
 	git clone https://github.com/TeCSAR-UNCC/Edge-Video-Analytic --recurse-submodules
 14. Fix a variable in the trt_helper.hpp file:
