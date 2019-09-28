@@ -79,5 +79,4 @@ make all
 
 Remember inet IP address (shown as a red block in the image below), you will need it for step 23:
 
-![GitHub Logo](/images/logo.png)
-Format: ![Alt Text](url)
+![inet_IP](Edge-Video-Analytic/doc/media/tecsar/inet_IP.png)
