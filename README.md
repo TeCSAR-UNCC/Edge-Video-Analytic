@@ -1,6 +1,12 @@
+# NVDA_DETEC
+# Infrastructure for Real-Time Edge Object Reidentification and Tracking
+
+Detection and tracking infrastructure built on top of OpenPose (https://github.com/CMU-Perceptual-Computing-Lab/openpose)
+
+
 Note: Path names are setup for “tecsar” by default
 
-# Part 1: Installing Nvidia SDK Manager
+## Part 1: Installing Nvidia SDK Manager
 1. Go to https://developer.nvidia.com
 
 1. Create an account and log in.
@@ -15,7 +21,7 @@ Note: Path names are setup for “tecsar” by default
 1. After it completes the installation, type sdkmanager in the terminal. This will open the graphical interface for the SDK Manager. Log in with your NVIDIA account.
 
 
-# Part 2: Installing prerequisites
+## Part 2: Installing prerequisites
 1. In the GUI, make sure the target hardware is the Jetson AGX Xavier, and the target operating system is JetPack 4.2.2.
 
 1. Host Machine can be left checked or unchecked (check indicates that files will be downloaded onto your machine before being installed on the Xavier, potentially saving time in the event you need to reload it later). Click Continue.
@@ -30,7 +36,7 @@ Note: Path names are setup for “tecsar” by default
 	1. If issues occur with OpenPose, reinstall CUDA on the Xavier from the Jetpack SDK Manager. Make sure the OS option is unchecked for this process.
 
 
-# Part 3: Installing OpenPose and REVAMP2T software
+## Part 3: Installing OpenPose and REVAMP2T software
 1. Download the UNCC OpenPose GitHub repository by running the following command in a terminal:
 	git clone https://github.com/TeCSAR-UNCC/Edge-Video-Analytic --recurse-submodules
 1. Fix a variable in the trt_helper.hpp file:
@@ -58,7 +64,7 @@ Run the following command in the terminal:
 make -j
 
 
-# Part 4: Running the Server
+## Part 4: Running the Server
 1. Run the EdgeServer on another Computer (Not the Xavier):
 Repeat part 3 on another computer to download the UNCC GitHub repository.
 
@@ -68,8 +74,6 @@ git clone https://github.com/jayrambhia/Install-OpenCV
 In a terminal, change directories to or open a terminal to the directory (.../Install-OpenCV/Ubuntu), then run the following commands in a terminal:
 	chmod +x *
 		./opencv_latest.sh
-
-
 
 
 1. Change directories to or open a terminal to the directory (.../Edge-Video-Analytic/SocketCode), then run the following command:
