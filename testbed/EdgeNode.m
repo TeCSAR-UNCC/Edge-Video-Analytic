@@ -61,14 +61,14 @@ classdef EdgeNode
                 obj.rcvQ = [];
                 obj.sendQ = [];
                 
-                pt = personType(0,0,zeros(1,1280),0,0,0,0);
+                pt = personType(0,0,zeros(1,1280),0,0,0,0,[],zeros(5,4),0);
                 oh = object_history(0,pt,0,0,0);
                 obj.obj_table = repmat(oh,params.tab_size,1);
                 obj.tab_size = params.tab_size;
                 obj.tab_life = params.tabLife;
                 obj.max_tab_idx = 1;
                 
-                obj.srv_kp_thresh = 20;
+                obj.srv_kp_thresh = 20;%20 ****EDIT*****
                 
                 obj.gt = params.gt;
                 obj.gt_frames = obj.gt(:,2);
@@ -88,6 +88,7 @@ classdef EdgeNode
             % Update table life vals. Send expired entries to server if previously
             %   sent to server.
             table_idxs = zeros(size(obj.obj_table,1),1);
+            
             for i = 1:size(obj.obj_table,1)
                 if (obj.obj_table(i).life > 0)
                     table_idxs(i) = 1;
@@ -97,7 +98,11 @@ classdef EdgeNode
                         % Send expired labels to server if previously sent
                         obj.sendQ = [obj.sendQ; obj.obj_table(i).sendObject];
                     end
+                    if(obj.obj_table(i).life==0)
+                        obj.obj_table(i).sendObject.being_tracked=0;
+                    end
                 end
+                
             end
             % Check rcvQ for updates from server
             if (~isempty(obj.rcvQ))
@@ -120,13 +125,31 @@ classdef EdgeNode
                 end
             end
             obj.rcvQ = [];
-            
+        tracked_objects=zeros(size(obj.obj_table,1),1);
+        for i=1:size(obj.obj_table,1) % turn off being_tracked when life is 0
+            if obj.obj_table(i).sendObject.being_tracked==1
+                tracked_objects(i)=1;
+            end
+        end
+        tracked_idx=find(tracked_objects);
+        prediction_cell=cell(length(tracked_idx),2); % structure to store object labels and their predictions
+         % get lstm predictions from the last frame
+         if (~isempty(tracked_idx))
+             
+            for i=1:length(tracked_idx)
+                label=obj.obj_table(tracked_idx(i)).sendObject.label;
+                predictions=obj.obj_table(tracked_idx(i)).sendObject.lstm_predictions;
+                prediction_cell{i,1}=label;
+                prediction_cell{i,2}=predictions;
+            end
+         end
             % Local ReID
             labeled_dets = [];
 
             dets = ones(size(keypoints,1),1);
             valid_dets = find(dets, 1);
             valid_tabs = find(table_idxs, 1);
+            lstm_index=zeros(size(obj.obj_table,1),1); % check which indices in the object table have 3 prev kps
             if (~isempty(valid_tabs) && ~isempty(valid_dets))
                 match_table = Inf(size(keypoints,1),obj.max_tab_idx);
                 valid_tabs = find(table_idxs);
@@ -161,6 +184,22 @@ classdef EdgeNode
                     so.yPos = bboxes(det,2);
                     so.width = bboxes(det,3);
                     so.height = bboxes(det,4);
+                    if(size(so.kp_history,1)==0) %check for empty kp history as well
+                        so.kp_history=keypoints(det,:);%turn off being_tracked
+                        so.being_tracked=0;
+                    elseif(size(so.kp_history,1)==1)
+                        so.kp_history=[so.kp_history;keypoints(det,:)];
+                        so.being_tracked=0;
+                    elseif (size(so.kp_history,1)==2)
+                        so.kp_history=[so.kp_history;keypoints(det,:)];
+                        lstm_index(tab)=1;
+                        so.being_tracked=1;
+                    else
+                        so.kp_history=[so.kp_history;keypoints(det,:)];
+                        so.kp_history(1,:)=[];
+                        lstm_index(tab)=1;
+                        so.being_tracked=1;
+                    end
                     if (validKPCounts(det) > obj.obj_table(tab).keyCount)
                         so.fv_array = features(det,:);
                         obj.obj_table(tab).keyCount = validKPCounts(det);
@@ -180,9 +219,10 @@ classdef EdgeNode
             valid_dets = find(dets);
             if ~isempty(valid_dets)
                 for i = 1:length(valid_dets)
-                    sendObject = personType(obj.id,obj.currID,features(valid_dets(i),:), ...
+                    sendObject = personType_30fps(obj.id,obj.currID,features(valid_dets(i),:), ...
                                             bboxes(valid_dets(i),1),bboxes(valid_dets(i),2), ...
-                                            bboxes(valid_dets(i),3),bboxes(valid_dets(i),4));
+                                            bboxes(valid_dets(i),3),bboxes(valid_dets(i),4),keypoints(valid_dets(i),:),...
+                                            zeros(5,4),0);
                     so = sendObject;
                     labeled_dets = [labeled_dets; [double(so.label), so.xPos, so.yPos, so.width, so.height]];
                     obj.currID = obj.currID + 1;
@@ -209,7 +249,59 @@ classdef EdgeNode
                     end
                 end
             end
-            
+            % checking for mis-detections if we have predictions from the
+            % prev frame
+           if (~isempty(prediction_cell))
+            for n = 1:size(obj.obj_table,1) %todo: update object table with lstm pred 
+                if(obj.obj_table(n).life)>0
+                    if (obj.obj_table(n).life)<6
+                        obj.obj_table(n).sendObject.kp_history(:,:)=[];
+                        misdetected_label= obj.obj_table(n).sendObject.label;
+                        for i=1:size(prediction_cell,1)
+                            if (prediction_cell{i,1}==misdetected_label)
+                                lstm_bboxes=cell2mat(prediction_cell(i,2));
+                                frame_pred=obj.tab_life-obj.obj_table(n).life;
+                                labeled_dets=[labeled_dets; [double(misdetected_label),lstm_bboxes(frame_pred,1),...
+                                  lstm_bboxes(frame_pred,2),lstm_bboxes(frame_pred,3),lstm_bboxes(frame_pred,4)]];
+                             so = obj.obj_table(n).sendObject;
+                            so.xPos = lstm_bboxes(frame_pred,1);
+                            so.yPos = lstm_bboxes(frame_pred,2);
+                            so.width = lstm_bboxes(frame_pred,3);
+                            so.height = lstm_bboxes(frame_pred,4); 
+                            obj.obj_table(n).sendObject = so;
+                            end
+                        end
+                    end
+                end
+            end
+           end
+             % adding lstm inference here
+             track_objects=find(lstm_index);
+             lstm_input_data=zeros(length(track_objects),3,75);
+             if ~isempty(track_objects)
+                 for i=1:length(track_objects)
+                     prev_kps=obj.obj_table(track_objects(i)).sendObject.kp_history;
+                     lstm_input_data(i,:,:)=prev_kps;
+                 end
+                 lstm_input=double(lstm_input_data);
+                 lstm_output=py.lstm_inference.inference(lstm_input,int32(length(track_objects)));
+                 lstm_predictions=single(lstm_output);
+                 lstm_predictions=reshape(lstm_predictions,20,length(track_objects))';
+             end
+             %adding the lstm predictions for objects in the object table
+             if ~isempty(track_objects)
+                 for i=1:length(track_objects)
+                     predictions=lstm_predictions(i,:);
+                     predictions=reshape(predictions,4,5)';
+                     for j=1:5
+                     obj.obj_table(track_objects(i)).sendObject.lstm_predictions(j,1)=predictions(j,1)-predictions(j,3)/2;
+                     obj.obj_table(track_objects(i)).sendObject.lstm_predictions(j,2)=predictions(j,2)-predictions(j,4)/2;
+                     obj.obj_table(track_objects(i)).sendObject.lstm_predictions(j,3)=predictions(j,3);
+                     obj.obj_table(track_objects(i)).sendObject.lstm_predictions(j,4)=predictions(j,4);
+                     end
+                 end
+             end
+             
             if obj.num_ids > 0
 %                 frame_gt = [];
 %                 while (obj.gt_idx<=size(obj.gt,1)) && (obj.gt(obj.gt_idx,2)==obj.currFrame)
@@ -228,7 +320,20 @@ classdef EdgeNode
             if obj.currFrameIdx <= length(obj.frames)
                 obj.currFrame = obj.frames(obj.currFrameIdx);
             end
+        end % process_step ends here
+function obj=process_step_track(obj)
+        % function to process the interpolated frames using lstm predictions 
+        table_idxs = zeros(size(obj.obj_table,1),1);
+        for i=1:size(obj.obj_table,1)
+            if obj.obj_table(i).sendObject.being_tracked==1
+                table_idxs(i)=1;
+            end
         end
+        obj.currFrameIdx =  obj.currFrameIdx + 1;
+        if obj.currFrameIdx <= length(obj.frames)
+               obj.currFrame = obj.frames(obj.currFrameIdx);
+        end
+end        
         function r = ready(obj, frame)
             if (frame == obj.currFrame)
                 r = 1;
@@ -239,7 +344,7 @@ classdef EdgeNode
         function obj = resetNode(obj)
             obj.currFrameIdx = 1;
             obj.currFrame = obj.frames(obj.currFrameIdx);
-            pt = personType(0,0,zeros(1,1280),0,0,0,0);
+            pt = personType_30fps(0,0,zeros(1,1280),0,0,0,0,[],zeros(5,4),0);
             oh = object_history(0,pt,0,0,0);
             obj.obj_table = repmat(oh,obj.tab_size,1);
             obj.currID = obj.id*1000000;
@@ -251,7 +356,7 @@ classdef EdgeNode
             obj.gt_idx = 1;
         end
         function obj = fillRcvQ(obj, queue)
-            obj.rcvQ = queue;
+            obj.rcvQ = [obj.rcvQ; queue];
         end
         function r = getSendQ(obj)
             r = obj.sendQ;
@@ -284,7 +389,7 @@ function r = object_history(life,sendObject,keyCount,reIDFlag,sentToServer)
 %       r - object_history struct
     if nargin ~= 5
         life = 0;
-        sendObject = personType();
+        sendObject = personType_30fps();
         keyCount = 0;
         reIDFlag = 0;
         sentToServer = 0;
@@ -335,8 +440,8 @@ function [frameDets, keyCount, frameFeats, bboxes] = reid_inference(obj)
         % Extract keypoints with confidence >= 0.05
         valid_mask = keypoint_conf >= 0.05;
         valid_keypoints = keypoints(valid_mask,1:2);
-%         if (key_cnt >= obj.kp_count_thresh)
-        if (key_cnt_head > 0) && (key_cnt_torso > 1) && (key_cnt_legs > 0)
+        if (key_cnt >= obj.kp_count_thresh)
+        %if (key_cnt_head > 0) && (key_cnt_torso > 1) && (key_cnt_legs > 0)
             % If enough valid keypoints, extract bbox dims
             %   [min_x,min_y,max_x,max_y] and ensure they are in
             %   image bounds
@@ -414,7 +519,7 @@ function r = gt_matching(id, validation, gt, dets, frame)
         for g = 1:num_gt
             in = iou(dets(d,2:end), gt(g,3:end));
 
-            if in > 0.3
+            if in >= 0.3
                 matches(d,g) = in;
             end
         end
@@ -422,20 +527,20 @@ function r = gt_matching(id, validation, gt, dets, frame)
     
     valid = validation;
     
-    if nnz(matches) < length(gt_cleared)
-        im_name = sprintf('data/DukeMTMC/frames/camera%d/%06d.jpg',id,frame);
-        save_name = sprintf('data/badframes/camera%d/%06d.jpg',id,frame);
-        img = imread(im_name);
-        for d = 1:num_dets
-            scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
-            img = insertShape(img,'rectangle',scaleddet,'Color',[128+10*d,0,0],'LineWidth',3);
-        end
-        for g = 1:num_gt
-            scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
-            img = insertShape(img,'rectangle',scaledgt,'Color',[0,128+10*g,0],'LineWidth',3);
-        end
-        imwrite(img,save_name);
-    end
+%     if nnz(matches) < length(gt_cleared)
+%         im_name = sprintf('data/DukeMTMC/frames/camera%d/%06d.jpg',id,frame);
+%         save_name = sprintf('data/badframes/camera%d/%06d.jpg',id,frame);
+%         img = imread(im_name);
+%         for d = 1:num_dets
+%             scaleddet = dets(d,2:5).*[1920,1080,1920,1080];
+%             img = insertShape(img,'rectangle',scaleddet,'Color',[128+10*d,0,0],'LineWidth',3);
+%         end
+%         for g = 1:num_gt
+%             scaledgt = gt(g,3:6).*[1920,1080,1920,1080];
+%             img = insertShape(img,'rectangle',scaledgt,'Color',[0,128+10*g,0],'LineWidth',3);
+%         end
+%         imwrite(img,save_name);
+%     end
     
     while nnz(matches) > 0
         best_match = max(matches,[],'all');
