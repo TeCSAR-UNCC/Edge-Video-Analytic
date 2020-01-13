@@ -344,7 +344,7 @@ end
         function obj = resetNode(obj)
             obj.currFrameIdx = 1;
             obj.currFrame = obj.frames(obj.currFrameIdx);
-            pt = personType_30fps(0,0,zeros(1,1280),0,0,0,0,[],zeros(5,4),0);
+            pt = personType(0,0,zeros(1,1280),0,0,0,0,[],zeros(5,4),0);
             oh = object_history(0,pt,0,0,0);
             obj.obj_table = repmat(oh,obj.tab_size,1);
             obj.currID = obj.id*1000000;
